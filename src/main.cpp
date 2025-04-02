@@ -33,7 +33,9 @@ void setup()
   pinMode(4, OUTPUT);
   digitalWrite(4, HIGH);
   // Initialize I2C with custom pins
+  Wire.end();
   Wire.begin(SDA_PIN, SCL_PIN);
+  // Wire.setClock(1000000UL); // Set I2C clock to 400kHz
 
   // Initialize display
   display.begin(0x3C, true);
@@ -62,7 +64,7 @@ void setup()
         while (true)
         {
           display_loop();
-          vTaskDelay(pdMS_TO_TICKS(100));
+          vTaskDelay(pdMS_TO_TICKS(25));
         }
       },
       "DisplayTask",
@@ -108,7 +110,7 @@ void draw_main_screen()
     contentArea1.setTextColor(SH110X_WHITE);
     contentArea1.setCursor(5, 10);
     contentArea1.print("CAN MsgID:");
-    contentArea1.setCursor(5, 24);
+    contentArea1.setCursor(5, 22);
     contentArea1.printf("0x%08X", can_id); // HEX výpis
     display.drawBitmap(0, 16, contentArea1.getBuffer(), 128, 48, SH110X_WHITE);
   }
@@ -142,12 +144,14 @@ void display_loop()
   spinner.fillScreen(SH110X_BLACK);
   const uint8_t centerX = 8;
   const uint8_t centerY = 8;
-  const uint8_t outerRadius = 7;
-  const uint8_t innerRadius = 3;
+  const uint8_t outerRadius = 6;
+  const uint8_t innerRadius = 2;
 
   // Draw outer circle
+  spinner.drawCircle(centerX, centerY, outerRadius + 1, SH110X_WHITE);
   spinner.drawCircle(centerX, centerY, outerRadius, SH110X_WHITE);
-  spinner.drawCircle(centerX, centerY, innerRadius, SH110X_WHITE);
+  spinner.fillCircle(centerX, centerY, innerRadius, SH110X_WHITE);
+  // spinner.fillc
 
   // Draw spokes
   for (int i = 0; i < 6; i++)
@@ -159,17 +163,19 @@ void display_loop()
   }
 
   // Update spinner position for next frame (slower rotation)
-  spinnerPos = (spinnerPos + 1) % 24;
-
+  spinnerPos = (spinnerPos - 3) % 24;
   // Draw spinner at bottom right
-  display.drawBitmap(SCREEN_WIDTH - 20, SCREEN_HEIGHT - 20,
+  static int16_t spinnerX = -16; // Start from off-screen left
+  spinnerX = (spinnerX + 3) % (SCREEN_WIDTH + 16); // Include full width of spinner
+  if (spinnerX == SCREEN_WIDTH) spinnerX = -16; // Reset when completely off-screen
+  display.drawBitmap(spinnerX, SCREEN_HEIGHT - 17,
                      spinner.getBuffer(), 16, 16, SH110X_WHITE);
   // ============================ spinner ===================================
 
   // Update display
   display.display();
 
-  delay(10);
+  // delay(10);
 }
 
 void loop()
