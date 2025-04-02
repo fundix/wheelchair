@@ -1,0 +1,6 @@
+[submodule "lib/lib/arduino-CAN"]
+	path = lib/lib/arduino-CAN
+	url = https://github.com/sandeepmistry/arduino-CAN
+[submodule "lib/arduino-CAN"]
+	path = lib/arduino-CAN
+	url = https://github.com/sandeepmistry/arduino-CAN
