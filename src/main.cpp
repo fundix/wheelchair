@@ -25,6 +25,8 @@ GFXcanvas1 contentArea2(128, MAIN_HEIGHT);
 twai_message_t message;
 uint32_t can_id = 0;
 
+Joystick joystick(ADC1_CHANNEL_2, ADC1_CHANNEL_3, 100);
+void analog_task(void *parameter);
 void display_loop();
 
 void setup()
@@ -76,6 +78,16 @@ void setup()
       1     // Core ID (same as Arduino loop)
   );
 
+  xTaskCreatePinnedToCore(
+      analog_task,
+      "AnalogTask",
+      4096, // stack size
+      NULL,
+      1, // priority
+      NULL,
+      0 // core
+  );
+
   log_d("setup done");
 }
 
@@ -96,6 +108,7 @@ void draw_main_screen()
   // topBar.drawRoundRect(0, 0, SCREEN_WIDTH, TOP_BAR_HEIGHT + 2, 3, SH110X_WHITE);
   static bool showArea1 = true;
   static unsigned long lastSwitch = 0;
+  MotorCommand leftMotor, rightMotor;
 
   // if (millis() - lastSwitch >= 2000)
   // {
@@ -109,10 +122,41 @@ void draw_main_screen()
     contentArea1.fillScreen(SH110X_BLACK);
     contentArea1.setTextSize(1);
     contentArea1.setTextColor(SH110X_WHITE);
-    contentArea1.setCursor(5, 10);
+    contentArea1.setCursor(5, 2);
     contentArea1.print("CAN MsgID:");
-    contentArea1.setCursor(5, 22);
+    contentArea1.setCursor(5, 12);
     contentArea1.printf("0x%08X", can_id); // HEX výpis
+
+    // Display joystick vector
+    // Simple joystick movement simulator
+    // float time = millis() / 1000.0f;
+    // float x = sin(time) * 0.8f;        // Circle X component
+    // float y = cos(time * 0.5f) * 0.8f; // Circle Y component, slower movement
+
+    float x = joystick.getX();
+    float y = joystick.getY();
+
+    int centerX = 105;
+    int centerY = 24;
+    int endX = centerX + static_cast<int>(x * 20);
+    int endY = centerY - static_cast<int>(y * 20);
+
+    contentArea1.drawCircle(centerX, centerY, 2, SH110X_WHITE);
+    contentArea1.drawLine(centerX, centerY, endX, endY, SH110X_WHITE);
+
+    joystick.computeMotorCommands(leftMotor, rightMotor);
+    // Display motor status
+    contentArea1.setCursor(5, 22);
+    contentArea1.print("L:");
+    contentArea1.print(leftMotor.reverse ? "R " : "F ");
+    // contentArea1.setCursor(20, 22);
+    contentArea1.print(leftMotor.speed);
+
+    contentArea1.setCursor(50, 22);
+    contentArea1.print("R:");
+    contentArea1.print(rightMotor.reverse ? "R " : "F ");
+    contentArea1.print(rightMotor.speed);
+
     display.drawBitmap(0, 16, contentArea1.getBuffer(), 128, 48, SH110X_WHITE);
   }
   else
@@ -190,10 +234,10 @@ void loop()
   }
 }
 
-void analog_task(void)
+void analog_task(void *parameter)
 {
   // Příklad: připojení joysticku na ADC kanály ADC1_CHANNEL_6 a ADC1_CHANNEL_7
-  Joystick joystick(ADC1_CHANNEL_2, ADC1_CHANNEL_3, 100);
+  extern Joystick joystick;
   joystick.calibrate();
 
   MotorCommand leftMotor, rightMotor;
@@ -208,6 +252,6 @@ void analog_task(void)
              leftMotor.reverse ? "REV" : "FWD", leftMotor.speed,
              rightMotor.reverse ? "REV" : "FWD", rightMotor.speed);
 
-    vTaskDelay(pdMS_TO_TICKS(100));
+    vTaskDelay(pdMS_TO_TICKS(25)); // Delay for 25 ms
   }
 }
