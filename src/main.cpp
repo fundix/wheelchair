@@ -25,7 +25,7 @@ GFXcanvas1 contentArea2(128, MAIN_HEIGHT);
 twai_message_t message;
 uint32_t can_id = 0;
 
-Joystick joystick(ADC1_CHANNEL_2, ADC1_CHANNEL_3, 100);
+Joystick joystick(JOYSTICK_X, JOYSTICK_Y, 100);
 void analog_task(void *parameter);
 void display_loop();
 
@@ -43,12 +43,13 @@ void screen1()
   float y = joystick.getY();
 
   int centerX = 105;
-  int centerY = 24;
+  int centerY = 15;
   int endX = centerX + static_cast<int>(x * 20);
   int endY = centerY - static_cast<int>(y * 20);
 
   contentArea1.drawCircle(centerX, centerY, 2, SH110X_WHITE);
   contentArea1.drawLine(centerX, centerY, endX, endY, SH110X_WHITE);
+  contentArea1.drawCircle(centerX, centerY, 12, SH110X_WHITE);
 
   MotorCommand leftMotor, rightMotor;
   joystick.computeMotorCommands(leftMotor, rightMotor);
@@ -161,25 +162,32 @@ void draw_main_screen()
   static uint8_t current_screen = 0;
 
   // Switch between different screens
-  switch (current_screen) {
-    case 0:
-      screen1();
-      break;
-    case 1:
-      screen2();
-      break;
-    // Add more cases here for additional screens
-    default:
-      current_screen = 0; // Reset to first screen if invalid
-      screen1();
-      break;
+  switch (current_screen)
+  {
+  case 0:
+    screen1();
+    break;
+  case 1:
+    screen2();
+    break;
+  // Add more cases here for additional screens
+  default:
+    current_screen = 0; // Reset to first screen if invalid
+    screen1();
+    break;
   }
 
-  // TODO: Add button handling code to change current_screen
-  // Example:
-  // if (button_pressed) {
-  //     current_screen = (current_screen + 1) % total_screens;
-  // }
+  static uint32_t lastButtonPress = 0;
+  const uint32_t debounceTime = 250; // 250ms debounce
+
+  // Check button with debouncing
+  uint32_t currentTime = esp_timer_get_time() / 1000; // Convert to milliseconds
+  if (digitalRead(BUTTON_PIN_1) == LOW) { // Assuming active LOW button
+    if (currentTime - lastButtonPress > debounceTime) {
+      current_screen = (current_screen + 1) % 2; // Toggle between 2 screens
+      lastButtonPress = currentTime;
+    }
+  }
 }
 
 void display_loop()
