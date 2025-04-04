@@ -5,6 +5,7 @@
 #include "driver/gpio.h"
 #include "driver/twai.h"
 #include "config.hpp"
+#include "Joystick.hpp"
 // Initialize display with correct pins
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
@@ -96,11 +97,11 @@ void draw_main_screen()
   static bool showArea1 = true;
   static unsigned long lastSwitch = 0;
 
-  if (millis() - lastSwitch >= 2000)
-  {
-    showArea1 = !showArea1;
-    lastSwitch = millis();
-  }
+  // if (millis() - lastSwitch >= 2000)
+  // {
+  //   showArea1 = !showArea1;
+  //   lastSwitch = millis();
+  // }
 
   // Draw content area
   if (showArea1)
@@ -165,9 +166,10 @@ void display_loop()
   // Update spinner position for next frame (slower rotation)
   spinnerPos = (spinnerPos - 3) % 24;
   // Draw spinner at bottom right
-  static int16_t spinnerX = -16; // Start from off-screen left
+  static int16_t spinnerX = -16;                   // Start from off-screen left
   spinnerX = (spinnerX + 3) % (SCREEN_WIDTH + 16); // Include full width of spinner
-  if (spinnerX == SCREEN_WIDTH) spinnerX = -16; // Reset when completely off-screen
+  if (spinnerX == SCREEN_WIDTH)
+    spinnerX = -16; // Reset when completely off-screen
   display.drawBitmap(spinnerX, SCREEN_HEIGHT - 17,
                      spinner.getBuffer(), 16, 16, SH110X_WHITE);
   // ============================ spinner ===================================
@@ -185,5 +187,27 @@ void loop()
   if (twai_receive(&message, pdMS_TO_TICKS(10)) == ESP_OK)
   {
     can_id = message.identifier; // Uložíme ID pro výpis
+  }
+}
+
+void analog_task(void)
+{
+  // Příklad: připojení joysticku na ADC kanály ADC1_CHANNEL_6 a ADC1_CHANNEL_7
+  Joystick joystick(ADC1_CHANNEL_2, ADC1_CHANNEL_3, 100);
+  joystick.calibrate();
+
+  MotorCommand leftMotor, rightMotor;
+
+  while (1)
+  {
+    joystick.update();
+    joystick.computeMotorCommands(leftMotor, rightMotor);
+
+    ESP_LOGI("Joystick", "X: %.2f, Y: %.2f | Levý motor: %s %d | Pravý motor: %s %d",
+             joystick.getX(), joystick.getY(),
+             leftMotor.reverse ? "REV" : "FWD", leftMotor.speed,
+             rightMotor.reverse ? "REV" : "FWD", rightMotor.speed);
+
+    vTaskDelay(pdMS_TO_TICKS(100));
   }
 }
