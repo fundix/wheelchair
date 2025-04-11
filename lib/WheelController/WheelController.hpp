@@ -13,9 +13,9 @@ public:
     // Rychlostní módy pro omezení maximálního výkonu
     enum SpeedMode
     {
-        LOW,
-        MEDIUM,
-        HIGH
+        SPEED_LOW,
+        SPEED_MEDIUM,
+        SPEED_HIGH
     };
 
     // Konstruktor a inicializace
