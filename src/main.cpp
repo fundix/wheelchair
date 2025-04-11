@@ -23,22 +23,22 @@ GFXcanvas1 contentArea1(SCREEN_WIDTH, MAIN_HEIGHT);
 GFXcanvas1 contentArea2(SCREEN_WIDTH, MAIN_HEIGHT);
 
 // TWAI variables
-twai_message_t message;
-uint32_t can_id = 0;
+// twai_message_t message;
+// uint32_t can_id = 0;
 
-Joystick* joystick = nullptr;
+Joystick *joystick = nullptr;
 void analog_task(void *parameter);
 void display_loop();
 
 void screen1()
 {
-  contentArea1.fillScreen(SH110X_BLACK);
-  contentArea1.setTextSize(1);
-  contentArea1.setTextColor(SH110X_WHITE);
-  contentArea1.setCursor(5, 2);
-  contentArea1.print("CAN MsgID:");
-  contentArea1.setCursor(5, 12);
-  contentArea1.printf("0x%08X", can_id); // HEX výpis
+  // contentArea1.fillScreen(SH110X_BLACK);
+  // contentArea1.setTextSize(1);
+  // contentArea1.setTextColor(SH110X_WHITE);
+  // contentArea1.setCursor(5, 2);
+  // contentArea1.print("CAN MsgID:");
+  // contentArea1.setCursor(5, 12);
+  // contentArea1.printf("0x%08X", can_id); // HEX výpis
 
   float x = joystick->getX();
   float y = joystick->getY();
@@ -100,22 +100,6 @@ void setup()
   display.begin(0x3C, true);
   display.clearDisplay();
   display.display();
-
-  delay(1000);
-
-  twai_general_config_t g_config = TWAI_GENERAL_CONFIG_DEFAULT(tx_io_num, rx_io_num, TWAI_MODE_NORMAL);
-  twai_timing_config_t t_config = TWAI_TIMING_CONFIG_500KBITS();
-  twai_filter_config_t f_config = TWAI_FILTER_CONFIG_ACCEPT_ALL();
-
-  if (twai_driver_install(&g_config, &t_config, &f_config) == ESP_OK &&
-      twai_start() == ESP_OK)
-  {
-    Serial.println("TWAI driver started");
-  }
-  else
-  {
-    Serial.println("Failed to start TWAI driver");
-  }
 
   xTaskCreatePinnedToCore(
       [](void *parameter)
@@ -185,8 +169,10 @@ void draw_main_screen()
 
   // Check button with debouncing
   uint32_t currentTime = esp_timer_get_time() / 1000; // Convert to milliseconds
-  if (digitalRead(BUTTON_PIN_1) == LOW) { // Assuming active LOW button
-    if (currentTime - lastButtonPress > debounceTime) {
+  if (digitalRead(BUTTON_PIN_OK) == LOW)
+  { // Assuming active LOW button
+    if (currentTime - lastButtonPress > debounceTime)
+    {
       current_screen = (current_screen + 1) % 2; // Toggle between 2 screens
       lastButtonPress = currentTime;
     }
@@ -251,16 +237,16 @@ void loop()
 {
   // put your main code here, to run repeatedly:
 
-  if (twai_receive(&message, pdMS_TO_TICKS(10)) == ESP_OK)
-  {
-    can_id = message.identifier; // Uložíme ID pro výpis
-  }
+  // if (twai_receive(&message, pdMS_TO_TICKS(10)) == ESP_OK)
+  // {
+  //   can_id = message.identifier; // Uložíme ID pro výpis
+  // }
 }
 
 void analog_task(void *parameter)
 {
   // Příklad: připojení joysticku na ADC kanály ADC1_CHANNEL_6 a ADC1_CHANNEL_7
-  extern Joystick* joystick;
+  extern Joystick *joystick;
   joystick->calibrate();
 
   while (1)
