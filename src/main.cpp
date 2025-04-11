@@ -12,6 +12,22 @@
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
 
+static uint8_t current_screen = 0;
+
+static bool buttonOkPressed = false;
+static bool lastButtonOkState = true;
+static uint32_t lastButtonOkChange = 0;
+
+static bool buttonUpPressed = false;
+static bool lastButtonUpState = true;
+static uint32_t lastButtonUpChange = 0;
+
+static bool buttonDownPressed = false;
+static bool lastButtonDownState = true;
+static uint32_t lastButtonDownChange = 0;
+
+const uint32_t debounceDelay = 50; // ms
+
 Adafruit_SH1106G display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 
 // Create sprite for top bar (128x16)
@@ -28,9 +44,9 @@ GFXcanvas1 contentArea2(SCREEN_WIDTH, MAIN_HEIGHT);
 // uint32_t can_id = 0;
 
 Joystick *joystick = nullptr;
-// MotorController *motorController = nullptr;
+MotorController *motorController = nullptr;
 
-void analog_task(void *parameter);
+void control_task(void *parameter);
 void display_loop();
 
 void screen1()
@@ -46,8 +62,8 @@ void screen1()
   float x = joystick->getX();
   float y = joystick->getY();
 
-  int centerX = 105;
-  int centerY = 15;
+  int centerX = 108;
+  int centerY = 18;
   int endX = centerX + static_cast<int>(x * 14);
   int endY = centerY - static_cast<int>(y * 14);
 
@@ -68,13 +84,55 @@ void screen1()
   contentArea1.print(rightMotor.reverse ? "-" : "+");
   contentArea1.print(rightMotor.speed);
 
+  float leftM = motorController->getLeftCmd();
+  float rightM = motorController->getRightCmd();
+
+  // Visual indicators for motor outputs
+  int barWidth = 50;
+  int barHeight = 3;
+  int barY_L = 30; // Y position for left motor bar
+  int barY_R = 40; // Y position for right motor bar
+  int barCenterX = 64;
+
+  // Left motor bar
+  int leftPixels = static_cast<int>(leftM * barWidth / 2.0f);
+  if (leftPixels > 0)
+  {
+    contentArea1.drawFastHLine(barCenterX, barY_L, 1, SH110X_WHITE);
+    contentArea1.fillRect(barCenterX + 1, barY_L, leftPixels, barHeight, SH110X_WHITE);
+  }
+  else if (leftPixels < 0)
+  {
+    contentArea1.drawFastHLine(barCenterX, barY_L, 1, SH110X_WHITE);
+    contentArea1.fillRect(barCenterX + leftPixels, barY_L, -leftPixels, barHeight, SH110X_WHITE);
+  }
+
+  // Right motor bar
+  int rightPixels = static_cast<int>(rightM * barWidth / 2.0f);
+  if (rightPixels > 0)
+  {
+    contentArea1.drawFastHLine(barCenterX, barY_R, 1, SH110X_WHITE);
+    contentArea1.fillRect(barCenterX + 1, barY_R, rightPixels, barHeight, SH110X_WHITE);
+  }
+  else if (rightPixels < 0)
+  {
+    contentArea1.drawFastHLine(barCenterX, barY_R, 1, SH110X_WHITE);
+    contentArea1.fillRect(barCenterX + rightPixels, barY_R, -rightPixels, barHeight, SH110X_WHITE);
+  }
+
+  // Draw border around motor bars
+  contentArea1.drawRect(barCenterX - barWidth / 2 - 1, barY_L - 1, barWidth + 2, barHeight * 2 + 10, SH110X_WHITE);
+
+  // Draw center line
+  contentArea1.drawFastVLine(barCenterX, barY_L - 1, barHeight * 2 + 10, SH110X_WHITE);
+
   display.drawBitmap(0, 16, contentArea1.getBuffer(), SCREEN_WIDTH, 48, SH110X_WHITE);
 
-  ESP_LOGI("Joystick", "X: %.2f (%d), Y: %.2f (%d) | Levý motor: %s %d | Pravý motor: %s %d",
-           joystick->getX(), joystick->getRawX(),
-           joystick->getY(), joystick->getRawY(),
-           leftMotor.reverse ? "REV" : "FWD", leftMotor.speed,
-           rightMotor.reverse ? "REV" : "FWD", rightMotor.speed);
+  // ESP_LOGI("Joystick", "X: %.2f (%d), Y: %.2f (%d) | Levý motor: %s %d | Pravý motor: %s %d",
+  //          joystick->getX(), joystick->getRawX(),
+  //          joystick->getY(), joystick->getRawY(),
+  //          leftMotor.reverse ? "REV" : "FWD", leftMotor.speed,
+  //          rightMotor.reverse ? "REV" : "FWD", rightMotor.speed);
 }
 
 void screen2()
@@ -98,6 +156,10 @@ void setup()
   Wire.end();
   Wire.begin(SDA_PIN, SCL_PIN);
   // Wire.setClock(1000000UL); // Set I2C clock to 400kHz
+
+  pinMode(BUTTON_PIN_OK, INPUT_PULLUP);
+  pinMode(BUTTON_PIN_UP, INPUT_PULLUP);
+  pinMode(BUTTON_PIN_DOWN, INPUT_PULLUP);
 
   // esp_err_t ret = nvs_flash_init();
 
@@ -126,8 +188,8 @@ void setup()
   // }
 
   joystick = new Joystick(JOYSTICK_X, JOYSTICK_Y, 100);
-  // motorController = new MotorController();
-  // motorController->begin();
+  motorController = new MotorController();
+  motorController->begin();
 
   // Initialize display
   display.begin(0x3C, true);
@@ -152,7 +214,7 @@ void setup()
   );
 
   xTaskCreatePinnedToCore(
-      analog_task,
+      control_task,
       "AnalogTask",
       4096, // stack size
       NULL,
@@ -171,7 +233,7 @@ void draw_header()
   topBar.setTextSize(1);
   topBar.setTextColor(SH110X_WHITE);
   topBar.setCursor(5, 4);
-  topBar.print("Wheelchair");
+  topBar.print("Power: ");
   topBar.drawLine(0, TOP_BAR_HEIGHT - 1, SCREEN_WIDTH, TOP_BAR_HEIGHT - 1, SH110X_WHITE);
   display.drawBitmap(0, 0, topBar.getBuffer(), SCREEN_WIDTH, 16, SH110X_WHITE);
 }
@@ -179,7 +241,6 @@ void draw_header()
 void draw_main_screen()
 {
   // Static variable to keep track of current screen
-  static uint8_t current_screen = 0;
 
   // Switch between different screens
   switch (current_screen)
@@ -197,11 +258,11 @@ void draw_main_screen()
     break;
   }
 
-  static uint32_t lastButtonPress = 0;
-  const uint32_t debounceTime = 250; // 250ms debounce
+  // static uint32_t lastButtonPress = 0;
+  // const uint32_t debounceTime = 250; // 250ms debounce
 
   // Check button with debouncing
-  uint32_t currentTime = esp_timer_get_time() / 1000; // Convert to milliseconds
+  // uint32_t currentTime = esp_timer_get_time() / 1000; // Convert to milliseconds
   // if (digitalRead(BUTTON_PIN_OK) == LOW)
   // { // Assuming active LOW button
   //   if (currentTime - lastButtonPress > debounceTime)
@@ -270,23 +331,83 @@ void loop()
 {
   // put your main code here, to run repeatedly:
 
+  uint32_t now = millis();
+
+  bool currentOkState = digitalRead(BUTTON_PIN_OK);
+  if (currentOkState != lastButtonOkState)
+  {
+    lastButtonOkChange = now;
+    lastButtonOkState = currentOkState;
+  }
+  if ((now - lastButtonOkChange) > debounceDelay)
+  {
+    bool newPressed = !currentOkState;
+    if (newPressed != buttonOkPressed)
+    {
+      buttonOkPressed = newPressed;
+      if (buttonOkPressed)
+      {
+        Serial.println("Button OK pressed");
+        current_screen = (current_screen + 1) % 2; // Toggle between 2 screens
+      }
+    }
+  }
+
+  bool currentUpState = digitalRead(BUTTON_PIN_UP);
+  if (currentUpState != lastButtonUpState)
+  {
+    lastButtonUpChange = now;
+    lastButtonUpState = currentUpState;
+  }
+  if ((now - lastButtonUpChange) > debounceDelay)
+  {
+    bool newPressed = !currentUpState;
+    if (newPressed != buttonUpPressed)
+    {
+      buttonUpPressed = newPressed;
+      if (buttonUpPressed)
+        Serial.println("Button UP pressed");
+    }
+  }
+
+  bool currentDownState = digitalRead(BUTTON_PIN_DOWN);
+  if (currentDownState != lastButtonDownState)
+  {
+    lastButtonDownChange = now;
+    lastButtonDownState = currentDownState;
+  }
+  if ((now - lastButtonDownChange) > debounceDelay)
+  {
+    bool newPressed = !currentDownState;
+    if (newPressed != buttonDownPressed)
+    {
+      buttonDownPressed = newPressed;
+      if (buttonDownPressed)
+        Serial.println("Button DOWN pressed");
+    }
+  }
+
   // if (twai_receive(&message, pdMS_TO_TICKS(10)) == ESP_OK)
   // {
   //   can_id = message.identifier; // Uložíme ID pro výpis
   // }
 }
 
-void analog_task(void *parameter)
+void control_task(void *parameter)
 {
   // Příklad: připojení joysticku na ADC kanály ADC1_CHANNEL_6 a ADC1_CHANNEL_7
   extern Joystick *joystick;
+  extern MotorController *motorController;
   joystick->calibrate();
   joystick->calibrateMinMax(50, 4095, 0, 4095); // Nastavení minimálních a maximálních hodnot pro kalibraci
 
   while (1)
   {
     joystick->update();
+    motorController->setJoystickInput(joystick->getX(), joystick->getY());
+    motorController->update();
 
     vTaskDelay(pdMS_TO_TICKS(25)); // Delay for 25 ms
+    vTaskDelay(pdMS_TO_TICKS(75)); // Delay for 25 ms
   }
 }

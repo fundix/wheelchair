@@ -4,6 +4,7 @@
 #include <Wire.h>
 #include <Arduino.h>
 #include <math.h>
+#include "esp_log.h"
 
 #define MAX_DAC_VALUE 32767 // 15-bit DAC, tj. max hodnota
 
@@ -27,10 +28,12 @@ public:
     void update();                                         // vypočítá nové výstupy a odešle je do DAC
 
     // Laditelné parametry – nastavitelné i v runtime
-    void setTurnScaleCoefficient(float coeff); // koeficient pro redukci efektu zatáčení při vyšší rychlosti
-    void setExpoCurveFwd(float expo);          // exponent pro plyn (vpřed/vzad)
-    void setExpoCurveTurn(float expo);         // exponent pro zatáčení (boční osa)
-    void setDeadzone(float dz);                // mrtvá zóna joysticku (např. 0.05)
+    void setTurnScaleCoefficient(float coeff);     // koeficient pro redukci efektu zatáčení při vyšší rychlosti
+    void setExpoCurveFwd(float expo);              // exponent pro plyn (vpřed/vzad)
+    void setExpoCurveTurn(float expo);             // exponent pro zatáčení (boční osa)
+    void setDeadzone(float dz);                    // mrtvá zóna joysticku (např. 0.05)
+    float getLeftCmd() const { return leftCmd; }   // vrátí aktuální příkaz pro levý motor
+    float getRightCmd() const { return rightCmd; } // vrátí aktuální příkaz pro pravý motor
 
 private:
     // Uchovává vstupy z joysticku

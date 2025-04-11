@@ -1,5 +1,7 @@
 #include "WheelController.hpp"
 
+static const char *TAG = "WheelController";
+
 MotorController::MotorController()
     : joystickX(0), joystickY(0), currentMode(SPEED_HIGH),
       deadzone(0.05), expoFwd(1.5), expoTurn(2.0), turnScaleCoefficient(0.5),
@@ -82,6 +84,8 @@ void MotorController::computeMotorOutputs()
     }
     leftCmd = L;
     rightCmd = R;
+
+    // ESP_LOGI(TAG, "L: %.2f, R: %.2f", leftCmd, rightCmd);
 }
 
 uint16_t MotorController::convertToDACValue(float voltage)
@@ -113,38 +117,39 @@ void MotorController::update()
     // Pokud je hodnota kladná, motor jede vpřed; pokud záporná, couvá.
     float leftSpeed = fabs(leftCmd);
     float leftVoltage = leftSpeed * 5.0; // škálování na 5V
-    // Pro levý motor: 1V = vpřed, 0V = reverz
-    float leftDirVoltage = (leftCmd >= 0) ? 1.0 : 0.0;
+    // Pro levý motor: true = vpřed, false = reverz
+    bool leftDir = (leftCmd >= 0);
 
     // U pravého motoru – vzhledem k fyzické orientaci:
     float rightSpeed = fabs(rightCmd);
     float rightVoltage = rightSpeed * 5.0;
-    // U pravého motoru, pokud se požaduje vpřed (kladný příkaz), je potřeba zapnout reverz,
-    // tedy: 0V = reverz, 1V = normální směrový signál.
-    float rightDirVoltage = (rightCmd >= 0) ? 0.0 : 1.0;
+    // U pravého motoru, pokud se požaduje vpřed (kladný příkaz), je potřeba zapnout reverz
+    bool rightDir = (rightCmd < 0);
 
     // Aplikace rychlostního módu (škálování podle Low/Med/High)
-    float modeFactor = 1.0;
-    switch (currentMode)
-    {
-    case SPEED_LOW:
-        modeFactor = 0.5;
-        break;
-    case SPEED_MEDIUM:
-        modeFactor = 0.75;
-        break;
-    case SPEED_HIGH:
-        modeFactor = 1.0;
-        break;
-    }
-    leftVoltage *= modeFactor;
-    rightVoltage *= modeFactor;
+    // float modeFactor = 1.0;
+    // switch (currentMode)
+    // {
+    // case SPEED_LOW:
+    //     modeFactor = 0.5;
+    //     break;
+    // case SPEED_MEDIUM:
+    //     modeFactor = 0.75;
+    //     break;
+    // case SPEED_HIGH:
+    //     modeFactor = 1.0;
+    //     break;
+    // }
+    // leftVoltage *= modeFactor;
+    // rightVoltage *= modeFactor;
 
     // Převod napětí na DAC hodnoty a jejich odeslání
+    return;
+    ESP_LOGI(TAG, "L: %.2fV/%d, R: %.2fV/%d", leftVoltage, leftDir, rightVoltage, rightDir);
     uint16_t leftSpeedDAC = convertToDACValue(leftVoltage);
-    uint16_t leftDirDAC = convertToDACValue(leftDirVoltage);
+    uint16_t leftDirDAC = convertToDACValue(leftDir);
     uint16_t rightSpeedDAC = convertToDACValue(rightVoltage);
-    uint16_t rightDirDAC = convertToDACValue(rightDirVoltage);
+    uint16_t rightDirDAC = convertToDACValue(rightDir);
 
     sendToDAC(leftSpeedDACChannel, leftSpeedDAC);
     sendToDAC(leftDirDACChannel, leftDirDAC);
