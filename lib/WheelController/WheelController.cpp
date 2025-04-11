@@ -10,7 +10,7 @@ MotorController::MotorController()
 void MotorController::begin()
 {
     // Inicializace I2C – dle použité knihovny a DAC modulu
-    Wire.begin();
+    // Wire.begin();
     // Inicializace DAC (specificky pro DFR1073) zde
     // např. dac.begin();
 }

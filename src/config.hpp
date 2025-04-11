@@ -27,5 +27,7 @@
 #define MOTOR_LEFT_REVERSE_PIN GPIO_NUM_6
 #define MOTOR_RIGHT_REVERSE_PIN GPIO_NUM_7
 
+const char *ssid = "SuicideWheelchair";
+const char *password = "SuicideWheelchair";
 
 #endif // WHEELCHAIR_CONFIG_HPP

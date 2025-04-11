@@ -23,7 +23,8 @@ public:
     void begin();                            // inicializace I2C a DAC zařízení
     void setJoystickInput(float x, float y); // x: zatáčení (-1 až +1), y: plynový příkaz (-1 až +1)
     void setSpeedMode(SpeedMode mode);
-    void update(); // vypočítá nové výstupy a odešle je do DAC
+    SpeedMode getSpeedMode() const { return currentMode; } // vrátí aktuální rychlostní mód
+    void update();                                         // vypočítá nové výstupy a odešle je do DAC
 
     // Laditelné parametry – nastavitelné i v runtime
     void setTurnScaleCoefficient(float coeff); // koeficient pro redukci efektu zatáčení při vyšší rychlosti

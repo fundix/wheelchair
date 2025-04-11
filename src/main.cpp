@@ -7,6 +7,7 @@
 #include "config.hpp"
 #include "Joystick.hpp"
 #include "WheelController.hpp"
+#include "WiFiUpdate.hpp"
 // Initialize display with correct pins
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
@@ -27,6 +28,8 @@ GFXcanvas1 contentArea2(SCREEN_WIDTH, MAIN_HEIGHT);
 // uint32_t can_id = 0;
 
 Joystick *joystick = nullptr;
+MotorController *motorController = nullptr;
+
 void analog_task(void *parameter);
 void display_loop();
 
@@ -85,16 +88,45 @@ void screen2()
 
 void setup()
 {
+
   Serial.begin();
   Serial.setDebugOutput(true);
-  pinMode(4, OUTPUT);
+  pinMode(4, OUTPUT); // for i2c power
   digitalWrite(4, HIGH);
   // Initialize I2C with custom pins
   Wire.end();
   Wire.begin(SDA_PIN, SCL_PIN);
   // Wire.setClock(1000000UL); // Set I2C clock to 400kHz
 
+  esp_err_t ret = nvs_flash_init();
+
+  if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND)
+  {
+    ESP_ERROR_CHECK(nvs_flash_erase());
+    ret = nvs_flash_init();
+  }
+
+  ESP_ERROR_CHECK(ret);
+
+  ESP_ERROR_CHECK(softap_init());
+  ESP_ERROR_CHECK(http_server_init());
+
+  /* Mark current app as valid */
+  const esp_partition_t *partition = esp_ota_get_running_partition();
+  printf("Currently running partition: %s\r\n", partition->label);
+
+  esp_ota_img_states_t ota_state;
+  if (esp_ota_get_state_partition(partition, &ota_state) == ESP_OK)
+  {
+    if (ota_state == ESP_OTA_IMG_PENDING_VERIFY)
+    {
+      esp_ota_mark_app_valid_cancel_rollback();
+    }
+  }
+
   joystick = new Joystick(JOYSTICK_X, JOYSTICK_Y, 100);
+  motorController = new MotorController();
+  motorController->begin();
 
   // Initialize display
   display.begin(0x3C, true);
