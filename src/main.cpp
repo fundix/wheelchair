@@ -6,6 +6,7 @@
 #include "driver/twai.h"
 #include "config.hpp"
 #include "Joystick.hpp"
+#include "WheelController.hpp"
 // Initialize display with correct pins
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
@@ -14,18 +15,18 @@ Adafruit_SH1106G display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 
 // Create sprite for top bar (128x16)
 static const uint16_t TOP_BAR_HEIGHT = 16;
-GFXcanvas1 topBar(128, TOP_BAR_HEIGHT);
+GFXcanvas1 topBar(SCREEN_WIDTH, TOP_BAR_HEIGHT);
 
 // Create sprites for main content areas (128x48)
 static const uint16_t MAIN_HEIGHT = 48; // 64 - 16 = 48
-GFXcanvas1 contentArea1(128, MAIN_HEIGHT);
-GFXcanvas1 contentArea2(128, MAIN_HEIGHT);
+GFXcanvas1 contentArea1(SCREEN_WIDTH, MAIN_HEIGHT);
+GFXcanvas1 contentArea2(SCREEN_WIDTH, MAIN_HEIGHT);
 
 // TWAI variables
 twai_message_t message;
 uint32_t can_id = 0;
 
-Joystick joystick(JOYSTICK_X, JOYSTICK_Y, 100);
+Joystick* joystick = nullptr;
 void analog_task(void *parameter);
 void display_loop();
 
@@ -39,8 +40,8 @@ void screen1()
   contentArea1.setCursor(5, 12);
   contentArea1.printf("0x%08X", can_id); // HEX výpis
 
-  float x = joystick.getX();
-  float y = joystick.getY();
+  float x = joystick->getX();
+  float y = joystick->getY();
 
   int centerX = 105;
   int centerY = 15;
@@ -52,7 +53,7 @@ void screen1()
   contentArea1.drawCircle(centerX, centerY, 12, SH110X_WHITE);
 
   MotorCommand leftMotor, rightMotor;
-  joystick.computeMotorCommands(leftMotor, rightMotor);
+  joystick->computeMotorCommands(leftMotor, rightMotor);
 
   contentArea1.setCursor(5, 22);
   contentArea1.print("L:");
@@ -64,10 +65,10 @@ void screen1()
   contentArea1.print(rightMotor.reverse ? "R " : "F ");
   contentArea1.print(rightMotor.speed);
 
-  display.drawBitmap(0, 16, contentArea1.getBuffer(), 128, 48, SH110X_WHITE);
+  display.drawBitmap(0, 16, contentArea1.getBuffer(), SCREEN_WIDTH, 48, SH110X_WHITE);
 
   ESP_LOGI("Joystick", "X: %.2f, Y: %.2f | Levý motor: %s %d | Pravý motor: %s %d",
-           joystick.getX(), joystick.getY(),
+           joystick->getX(), joystick->getY(),
            leftMotor.reverse ? "REV" : "FWD", leftMotor.speed,
            rightMotor.reverse ? "REV" : "FWD", rightMotor.speed);
 }
@@ -79,7 +80,7 @@ void screen2()
   contentArea2.setTextColor(SH110X_WHITE);
   contentArea2.setCursor(10, 10);
   contentArea2.print("Area 2");
-  display.drawBitmap(0, 16, contentArea2.getBuffer(), 128, 48, SH110X_WHITE);
+  display.drawBitmap(0, 16, contentArea2.getBuffer(), SCREEN_WIDTH, 48, SH110X_WHITE);
 }
 
 void setup()
@@ -92,6 +93,8 @@ void setup()
   Wire.end();
   Wire.begin(SDA_PIN, SCL_PIN);
   // Wire.setClock(1000000UL); // Set I2C clock to 400kHz
+
+  joystick = new Joystick(JOYSTICK_X, JOYSTICK_Y, 100);
 
   // Initialize display
   display.begin(0x3C, true);
@@ -153,7 +156,7 @@ void draw_header()
   topBar.setCursor(5, 4);
   topBar.print("Wheelchair");
   topBar.drawLine(0, TOP_BAR_HEIGHT - 1, SCREEN_WIDTH, TOP_BAR_HEIGHT - 1, SH110X_WHITE);
-  display.drawBitmap(0, 0, topBar.getBuffer(), 128, 16, SH110X_WHITE);
+  display.drawBitmap(0, 0, topBar.getBuffer(), SCREEN_WIDTH, 16, SH110X_WHITE);
 }
 
 void draw_main_screen()
@@ -257,12 +260,12 @@ void loop()
 void analog_task(void *parameter)
 {
   // Příklad: připojení joysticku na ADC kanály ADC1_CHANNEL_6 a ADC1_CHANNEL_7
-  extern Joystick joystick;
-  joystick.calibrate();
+  extern Joystick* joystick;
+  joystick->calibrate();
 
   while (1)
   {
-    joystick.update();
+    joystick->update();
 
     vTaskDelay(pdMS_TO_TICKS(25)); // Delay for 25 ms
   }
