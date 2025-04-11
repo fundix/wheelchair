@@ -89,9 +89,9 @@ void screen1()
 
   // Visual indicators for motor outputs
   int barWidth = 50;
-  int barHeight = 3;
+  int barHeight = 5;
   int barY_L = 30; // Y position for left motor bar
-  int barY_R = 40; // Y position for right motor bar
+  int barY_R = 36; // Y position for right motor bar
   int barCenterX = 64;
 
   // Left motor bar
@@ -121,10 +121,10 @@ void screen1()
   }
 
   // Draw border around motor bars
-  contentArea1.drawRect(barCenterX - barWidth / 2 - 1, barY_L - 1, barWidth + 2, barHeight * 2 + 10, SH110X_WHITE);
+  contentArea1.drawRect(barCenterX - barWidth / 2 - 1, barY_L - 1, barWidth + 2, barHeight * 2 + 3, SH110X_WHITE);
 
   // Draw center line
-  contentArea1.drawFastVLine(barCenterX, barY_L - 1, barHeight * 2 + 10, SH110X_WHITE);
+  contentArea1.drawFastVLine(barCenterX, barY_L - 1, barHeight * 2 + 3, SH110X_WHITE);
 
   display.drawBitmap(0, 16, contentArea1.getBuffer(), SCREEN_WIDTH, 48, SH110X_WHITE);
 
