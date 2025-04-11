@@ -4,7 +4,7 @@ static const char *TAG = "WheelController";
 
 MotorController::MotorController()
     : joystickX(0), joystickY(0), currentMode(SPEED_HIGH),
-      deadzone(0.05), expoFwd(1.5), expoTurn(2.0), turnScaleCoefficient(0.5),
+      deadzone(0.05), expoFwd(1.3), expoTurn(1.2), turnScaleCoefficient(0.75),
       leftCmd(0), rightCmd(0)
 {
 }
