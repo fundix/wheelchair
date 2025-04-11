@@ -29,7 +29,10 @@ public:
     void update();
     float getX() const;
     float getY() const;
+    int getRawX() const { return _rawX; }
+    int getRawY() const { return _rawY; }
     void computeMotorCommands(MotorCommand &leftMotor, MotorCommand &rightMotor);
+    void calibrateMinMax(int minX, int maxX, int minY, int maxY);
 
 private:
     adc1_channel_t _channelX, _channelY;
@@ -37,6 +40,8 @@ private:
     int _zeroX, _zeroY;
     int _rawX, _rawY;
     float _normX, _normY;
+    int _minX, _maxX;
+    int _minY, _maxY;
 };
 
 #endif // JOYSTICK_HPP

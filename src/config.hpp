@@ -17,8 +17,8 @@
 // #define tx_io_num GPIO_NUM_4
 // #define rx_io_num GPIO_NUM_5
 
-#define JOYSTICK_X ADC1_CHANNEL_1
-#define JOYSTICK_Y ADC1_CHANNEL_2
+#define JOYSTICK_X ADC1_CHANNEL_2
+#define JOYSTICK_Y ADC1_CHANNEL_1
 
 #define BUTTON_PIN_OK GPIO_NUM_3
 #define BUTTON_PIN_UP GPIO_NUM_4
@@ -27,7 +27,7 @@
 #define MOTOR_LEFT_REVERSE_PIN GPIO_NUM_6
 #define MOTOR_RIGHT_REVERSE_PIN GPIO_NUM_7
 
-const char *ssid = "SuicideWheelchair";
-const char *password = "SuicideWheelchair";
+// const char *ssid = "SuicideWheelchair";
+// const char *password = "SuicideWheelchair";
 
 #endif // WHEELCHAIR_CONFIG_HPP

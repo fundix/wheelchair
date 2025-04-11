@@ -7,7 +7,7 @@
 #include "config.hpp"
 #include "Joystick.hpp"
 #include "WheelController.hpp"
-#include "WiFiUpdate.hpp"
+// #include "WiFiUpdate.hpp"
 // Initialize display with correct pins
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
@@ -28,16 +28,16 @@ GFXcanvas1 contentArea2(SCREEN_WIDTH, MAIN_HEIGHT);
 // uint32_t can_id = 0;
 
 Joystick *joystick = nullptr;
-MotorController *motorController = nullptr;
+// MotorController *motorController = nullptr;
 
 void analog_task(void *parameter);
 void display_loop();
 
 void screen1()
 {
-  // contentArea1.fillScreen(SH110X_BLACK);
-  // contentArea1.setTextSize(1);
-  // contentArea1.setTextColor(SH110X_WHITE);
+  contentArea1.fillScreen(SH110X_BLACK);
+  contentArea1.setTextSize(1);
+  contentArea1.setTextColor(SH110X_WHITE);
   // contentArea1.setCursor(5, 2);
   // contentArea1.print("CAN MsgID:");
   // contentArea1.setCursor(5, 12);
@@ -48,30 +48,31 @@ void screen1()
 
   int centerX = 105;
   int centerY = 15;
-  int endX = centerX + static_cast<int>(x * 20);
-  int endY = centerY - static_cast<int>(y * 20);
+  int endX = centerX + static_cast<int>(x * 14);
+  int endY = centerY - static_cast<int>(y * 14);
 
   contentArea1.drawCircle(centerX, centerY, 2, SH110X_WHITE);
   contentArea1.drawLine(centerX, centerY, endX, endY, SH110X_WHITE);
-  contentArea1.drawCircle(centerX, centerY, 12, SH110X_WHITE);
+  contentArea1.drawCircle(centerX, centerY, 14, SH110X_WHITE);
 
   MotorCommand leftMotor, rightMotor;
   joystick->computeMotorCommands(leftMotor, rightMotor);
 
-  contentArea1.setCursor(5, 22);
+  contentArea1.setCursor(5, 5);
   contentArea1.print("L:");
-  contentArea1.print(leftMotor.reverse ? "R " : "F ");
+  contentArea1.print(leftMotor.reverse ? "-" : "+");
   contentArea1.print(leftMotor.speed);
 
-  contentArea1.setCursor(50, 22);
+  contentArea1.setCursor(50, 5);
   contentArea1.print("R:");
-  contentArea1.print(rightMotor.reverse ? "R " : "F ");
+  contentArea1.print(rightMotor.reverse ? "-" : "+");
   contentArea1.print(rightMotor.speed);
 
   display.drawBitmap(0, 16, contentArea1.getBuffer(), SCREEN_WIDTH, 48, SH110X_WHITE);
 
-  ESP_LOGI("Joystick", "X: %.2f, Y: %.2f | Levý motor: %s %d | Pravý motor: %s %d",
-           joystick->getX(), joystick->getY(),
+  ESP_LOGI("Joystick", "X: %.2f (%d), Y: %.2f (%d) | Levý motor: %s %d | Pravý motor: %s %d",
+           joystick->getX(), joystick->getRawX(),
+           joystick->getY(), joystick->getRawY(),
            leftMotor.reverse ? "REV" : "FWD", leftMotor.speed,
            rightMotor.reverse ? "REV" : "FWD", rightMotor.speed);
 }
@@ -98,35 +99,35 @@ void setup()
   Wire.begin(SDA_PIN, SCL_PIN);
   // Wire.setClock(1000000UL); // Set I2C clock to 400kHz
 
-  esp_err_t ret = nvs_flash_init();
+  // esp_err_t ret = nvs_flash_init();
 
-  if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND)
-  {
-    ESP_ERROR_CHECK(nvs_flash_erase());
-    ret = nvs_flash_init();
-  }
+  // if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND)
+  // {
+  //   ESP_ERROR_CHECK(nvs_flash_erase());
+  //   ret = nvs_flash_init();
+  // }
 
-  ESP_ERROR_CHECK(ret);
+  // ESP_ERROR_CHECK(ret);
 
-  ESP_ERROR_CHECK(softap_init());
-  ESP_ERROR_CHECK(http_server_init());
+  // ESP_ERROR_CHECK(softap_init());
+  // ESP_ERROR_CHECK(http_server_init());
 
   /* Mark current app as valid */
-  const esp_partition_t *partition = esp_ota_get_running_partition();
-  printf("Currently running partition: %s\r\n", partition->label);
+  // const esp_partition_t *partition = esp_ota_get_running_partition();
+  // printf("Currently running partition: %s\r\n", partition->label);
 
-  esp_ota_img_states_t ota_state;
-  if (esp_ota_get_state_partition(partition, &ota_state) == ESP_OK)
-  {
-    if (ota_state == ESP_OTA_IMG_PENDING_VERIFY)
-    {
-      esp_ota_mark_app_valid_cancel_rollback();
-    }
-  }
+  // esp_ota_img_states_t ota_state;
+  // if (esp_ota_get_state_partition(partition, &ota_state) == ESP_OK)
+  // {
+  //   if (ota_state == ESP_OTA_IMG_PENDING_VERIFY)
+  //   {
+  //     esp_ota_mark_app_valid_cancel_rollback();
+  //   }
+  // }
 
   joystick = new Joystick(JOYSTICK_X, JOYSTICK_Y, 100);
-  motorController = new MotorController();
-  motorController->begin();
+  // motorController = new MotorController();
+  // motorController->begin();
 
   // Initialize display
   display.begin(0x3C, true);
@@ -201,14 +202,14 @@ void draw_main_screen()
 
   // Check button with debouncing
   uint32_t currentTime = esp_timer_get_time() / 1000; // Convert to milliseconds
-  if (digitalRead(BUTTON_PIN_OK) == LOW)
-  { // Assuming active LOW button
-    if (currentTime - lastButtonPress > debounceTime)
-    {
-      current_screen = (current_screen + 1) % 2; // Toggle between 2 screens
-      lastButtonPress = currentTime;
-    }
-  }
+  // if (digitalRead(BUTTON_PIN_OK) == LOW)
+  // { // Assuming active LOW button
+  //   if (currentTime - lastButtonPress > debounceTime)
+  //   {
+  //     current_screen = (current_screen + 1) % 2; // Toggle between 2 screens
+  //     lastButtonPress = currentTime;
+  //   }
+  // }
 }
 
 void display_loop()
@@ -223,40 +224,40 @@ void display_loop()
 
   // ============================ spinner ===================================
   // Create static canvas for wheel spinner (16x16)
-  static GFXcanvas1 spinner(16, 16);
-  static uint8_t spinnerPos = 0;
+  // static GFXcanvas1 spinner(16, 16);
+  // static uint8_t spinnerPos = 0;
 
-  // Draw wheel spinner in bottom right corner
-  spinner.fillScreen(SH110X_BLACK);
-  const uint8_t centerX = 8;
-  const uint8_t centerY = 8;
-  const uint8_t outerRadius = 6;
-  const uint8_t innerRadius = 2;
+  // // Draw wheel spinner in bottom right corner
+  // spinner.fillScreen(SH110X_BLACK);
+  // const uint8_t centerX = 8;
+  // const uint8_t centerY = 8;
+  // const uint8_t outerRadius = 6;
+  // const uint8_t innerRadius = 2;
 
-  // Draw outer circle
-  spinner.drawCircle(centerX, centerY, outerRadius + 1, SH110X_WHITE);
-  spinner.drawCircle(centerX, centerY, outerRadius, SH110X_WHITE);
-  spinner.fillCircle(centerX, centerY, innerRadius, SH110X_WHITE);
-  // spinner.fillc
+  // // Draw outer circle
+  // spinner.drawCircle(centerX, centerY, outerRadius + 1, SH110X_WHITE);
+  // spinner.drawCircle(centerX, centerY, outerRadius, SH110X_WHITE);
+  // spinner.fillCircle(centerX, centerY, innerRadius, SH110X_WHITE);
+  // // spinner.fillc
 
-  // Draw spokes
-  for (int i = 0; i < 6; i++)
-  {
-    float angle = (spinnerPos * PI / 12.0) + (i * PI / 3.0);
-    int16_t endX = centerX + (outerRadius * cos(angle));
-    int16_t endY = centerY + (outerRadius * sin(angle));
-    spinner.drawLine(centerX, centerY, endX, endY, SH110X_WHITE);
-  }
+  // // Draw spokes
+  // for (int i = 0; i < 6; i++)
+  // {
+  //   float angle = (spinnerPos * PI / 12.0) + (i * PI / 3.0);
+  //   int16_t endX = centerX + (outerRadius * cos(angle));
+  //   int16_t endY = centerY + (outerRadius * sin(angle));
+  //   spinner.drawLine(centerX, centerY, endX, endY, SH110X_WHITE);
+  // }
 
-  // Update spinner position for next frame (slower rotation)
-  spinnerPos = (spinnerPos - 3) % 24;
-  // Draw spinner at bottom right
-  static int16_t spinnerX = -16;                   // Start from off-screen left
-  spinnerX = (spinnerX + 3) % (SCREEN_WIDTH + 16); // Include full width of spinner
-  if (spinnerX == SCREEN_WIDTH)
-    spinnerX = -16; // Reset when completely off-screen
-  display.drawBitmap(spinnerX, SCREEN_HEIGHT - 17,
-                     spinner.getBuffer(), 16, 16, SH110X_WHITE);
+  // // Update spinner position for next frame (slower rotation)
+  // spinnerPos = (spinnerPos - 3) % 24;
+  // // Draw spinner at bottom right
+  // static int16_t spinnerX = -16;                   // Start from off-screen left
+  // spinnerX = (spinnerX + 3) % (SCREEN_WIDTH + 16); // Include full width of spinner
+  // if (spinnerX == SCREEN_WIDTH)
+  //   spinnerX = -16; // Reset when completely off-screen
+  // display.drawBitmap(spinnerX, SCREEN_HEIGHT - 17,
+  //                    spinner.getBuffer(), 16, 16, SH110X_WHITE);
   // ============================ spinner ===================================
 
   // Update display
@@ -280,6 +281,7 @@ void analog_task(void *parameter)
   // Příklad: připojení joysticku na ADC kanály ADC1_CHANNEL_6 a ADC1_CHANNEL_7
   extern Joystick *joystick;
   joystick->calibrate();
+  joystick->calibrateMinMax(50, 4095, 0, 4095); // Nastavení minimálních a maximálních hodnot pro kalibraci
 
   while (1)
   {

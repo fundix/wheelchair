@@ -1,10 +1,12 @@
 #include "Joystick.hpp"
 
+#define TAG "Joystick"
+
 // Konstruktor přijímá ADC kanály pro X a Y a volitelnou hodnotu dead zone (výchozí je 1/4 rozsahu ADC)
 Joystick::Joystick(adc1_channel_t channelX, adc1_channel_t channelY, int deadZone)
     : _channelX(channelX), _channelY(channelY), _deadZone(deadZone),
       _zeroX(0), _zeroY(0), _rawX(0), _rawY(0),
-      _normX(0.0f), _normY(0.0f)
+      _normX(0.0f), _normY(0.0f), _minX(0), _maxX(0), _minY(0), _maxY(0)
 {
     // Inicializace ADC – konfigurace šířky převodníku a útlumu pro dané kanály
     adc1_config_width(ADC_WIDTH_BIT_12);
@@ -25,36 +27,53 @@ void Joystick::calibrate(int samples)
     }
     _zeroX = sumX / samples;
     _zeroY = sumY / samples;
+    ESP_LOGI(TAG, "Center calibration X: %d, Y: %d", _zeroX, _zeroY);
 }
 
 // Aktualizace – načte aktuální hodnoty z ADC, odečte nulovou pozici a normalizuje rozdíl
 void Joystick::update()
 {
+    if (_maxX == _minX || _maxY == _minY)
+    {
+        ESP_LOGW(TAG, "Joystick min/max values not calibrated properly.");
+        _normX = 0.0f;
+        _normY = 0.0f;
+        return;
+    }
+
     _rawX = adc1_get_raw(_channelX);
     _rawY = adc1_get_raw(_channelY);
 
-    int diffX = _rawX - _zeroX;
-    int diffY = _rawY - _zeroY;
+    _normX = 0.0f;
+    _normY = 0.0f;
 
-    // Pokud je odchylka menší než dead zone, považujeme ji za nulu
-    if (abs(diffX) < _deadZone)
-        diffX = 0;
-    if (abs(diffY) < _deadZone)
-        diffY = 0;
+    if (_rawX < _zeroX && _zeroX != _minX)
+        _normX = -fminf((float)(_zeroX - _rawX) / fabsf((float)(_zeroX - _minX)), 1.0f);
+    else if (_rawX > _zeroX && _maxX != _zeroX)
+        _normX = fminf((float)(_rawX - _zeroX) / fabsf((float)(_maxX - _zeroX)), 1.0f);
 
-    // Normalizace – předpokládáme maximální odchylku jako polovinu rozsahu ADC
-    float maxDeviation = ADC_MAX / 2.0f;
-    _normX = fmaxf(fminf((float)diffX / maxDeviation, 1.0f), -1.0f);
-    _normY = fmaxf(fminf((float)diffY / maxDeviation, 1.0f), -1.0f);
+    if (_rawY < _zeroY && _zeroY != _minY)
+        _normY = -fminf((float)(_zeroY - _rawY) / fabsf((float)(_zeroY - _minY)), 1.0f);
+    else if (_rawY > _zeroY && _maxY != _zeroY)
+        _normY = fminf((float)(_rawY - _zeroY) / fabsf((float)(_maxY - _zeroY)), 1.0f);
+
+    // Dead zone filter for small noise
+    if (fabsf(_normX) < 0.05f)
+        _normX = 0.0f;
+    if (fabsf(_normY) < 0.05f)
+        _normY = 0.0f;
 }
 
-// Přístupové metody k normalizovaným hodnotám
-float Joystick::getX() const { return _normX; }
-float Joystick::getY() const { return _normY; }
+float Joystick::getX() const
+{
+    return _normX;
+}
 
-// Výpočet příkazů pro motory podle principu arcade drive:
-// Kombinací hodnot pro vpřed/zad (_normY) a zatáčení (_normX)
-// Například při úplném odchýlení doleva (_normX = -1, _normY = 0) se levý motor roztočí vzad a pravý vpřed.
+float Joystick::getY() const
+{
+    return _normY;
+}
+
 void Joystick::computeMotorCommands(MotorCommand &leftMotor, MotorCommand &rightMotor)
 {
     float throttle = _normY;
@@ -72,4 +91,13 @@ void Joystick::computeMotorCommands(MotorCommand &leftMotor, MotorCommand &right
     rightMotor.reverse = (rightOutput < 0);
     leftMotor.speed = (uint8_t)(fabs(leftOutput) * 255);
     rightMotor.speed = (uint8_t)(fabs(rightOutput) * 255);
+}
+
+void Joystick::calibrateMinMax(int minX, int maxX, int minY, int maxY)
+{
+    _minX = minX;
+    _maxX = maxX;
+    _minY = minY;
+    _maxY = maxY;
+    ESP_LOGI(TAG, "Calibration Min/Max X: [%d, %d], Y: [%d, %d]", _minX, _maxX, _minY, _maxY);
 }

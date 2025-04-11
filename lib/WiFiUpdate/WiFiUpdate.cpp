@@ -3,8 +3,8 @@
 /*
  * Serve OTA update portal (index.html)
  */
-extern const uint8_t index_html_start[] asm("_binary_index_html_start");
-extern const uint8_t index_html_end[] asm("_binary_index_html_end");
+extern const uint8_t index_html_start[] asm("_binary_lib_WiFiUpdate_web_index_html_start");
+extern const uint8_t index_html_end[] asm("_binary_lib_WiFiUpdate_web_index_html_end");
 
 esp_err_t index_get_handler(httpd_req_t *req)
 {
@@ -12,8 +12,7 @@ esp_err_t index_get_handler(httpd_req_t *req)
     return ESP_OK;
 }
 
-/*
- * Handle OTA file upload
+/* * Handle OTA file upload
  */
 esp_err_t update_post_handler(httpd_req_t *req)
 {
