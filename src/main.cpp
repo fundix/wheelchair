@@ -159,7 +159,7 @@ void setup()
   // Initialize I2C with custom pins
   Wire.end();
   Wire.begin(SDA_PIN, SCL_PIN);
-  // Wire.setClock(1000000UL); // Set I2C clock to 400kHz
+  Wire.setClock(200000UL); // Set I2C clock to 400kHz
 
   // Initialize display
   display.begin(0x3C, true);
@@ -357,6 +357,7 @@ void loop()
       {
         Serial.println("Button OK pressed");
         current_screen = (current_screen + 1) % 2; // Toggle between 2 screens
+        display.clearDisplay();
       }
     }
   }
