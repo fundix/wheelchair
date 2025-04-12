@@ -7,10 +7,14 @@
 #include "config.hpp"
 #include "Joystick.hpp"
 #include "WheelController.hpp"
+
+#include "startup-img.h"
 // #include "WiFiUpdate.hpp"
 // Initialize display with correct pins
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
+
+static const char *TAG = "main";
 
 static uint8_t current_screen = 0;
 
@@ -157,6 +161,13 @@ void setup()
   Wire.begin(SDA_PIN, SCL_PIN);
   // Wire.setClock(1000000UL); // Set I2C clock to 400kHz
 
+  // Initialize display
+  display.begin(0x3C, true);
+  display.clearDisplay();
+
+  display.drawBitmap(0, 0, lcd_bitmap, static_cast<int16_t>(IMAGE_WIDTH), static_cast<int16_t>(IMAGE_HEIGHT), SH110X_WHITE);
+  display.display();
+
   pinMode(BUTTON_PIN_OK, INPUT_PULLUP);
   pinMode(BUTTON_PIN_UP, INPUT_PULLUP);
   pinMode(BUTTON_PIN_DOWN, INPUT_PULLUP);
@@ -191,10 +202,7 @@ void setup()
   motorController = new MotorController();
   motorController->begin();
 
-  // Initialize display
-  display.begin(0x3C, true);
-  display.clearDisplay();
-  display.display();
+  vTaskDelay(4000 / portTICK_PERIOD_MS); // Wait for display to initialize
 
   xTaskCreatePinnedToCore(
       [](void *parameter)
@@ -406,6 +414,8 @@ void control_task(void *parameter)
     joystick->update();
     motorController->setJoystickInput(joystick->getX(), joystick->getY());
     motorController->update();
+
+    // ESP_LOGI(TAG, "Raw values X: %d, Y: %d", joystick->getRawX(), joystick->getRawY());
 
     vTaskDelay(pdMS_TO_TICKS(25)); // Delay for 25 ms
     vTaskDelay(pdMS_TO_TICKS(75)); // Delay for 25 ms

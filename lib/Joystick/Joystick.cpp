@@ -1,10 +1,11 @@
 #include "Joystick.hpp"
 
-#define TAG "Joystick"
+static const char *TAG = "Joystick";
 
 // Konstruktor přijímá ADC kanály pro X a Y a volitelnou hodnotu dead zone (výchozí je 1/4 rozsahu ADC)
 Joystick::Joystick(adc1_channel_t channelX, adc1_channel_t channelY, int deadZone)
-    : _channelX(channelX), _channelY(channelY), _deadZone(deadZone),
+    : _channelX(channelX),
+      _channelY(channelY), _deadZone(deadZone),
       _zeroX(0), _zeroY(0), _rawX(0), _rawY(0),
       _normX(0.0f), _normY(0.0f), _minX(0), _maxX(0), _minY(0), _maxY(0)
 {

@@ -144,15 +144,17 @@ void MotorController::update()
     // rightVoltage *= modeFactor;
 
     // Převod napětí na DAC hodnoty a jejich odeslání
-    return;
-    ESP_LOGI(TAG, "L: %.2fV/%d, R: %.2fV/%d", leftVoltage, leftDir, rightVoltage, rightDir);
+
     uint16_t leftSpeedDAC = convertToDACValue(leftVoltage);
-    uint16_t leftDirDAC = convertToDACValue(leftDir);
+    // uint16_t leftDirDAC = convertToDACValue(leftDir);
     uint16_t rightSpeedDAC = convertToDACValue(rightVoltage);
-    uint16_t rightDirDAC = convertToDACValue(rightDir);
+    // uint16_t rightDirDAC = convertToDACValue(rightDir);
+
+    // ESP_LOGI(TAG, "L: %d/%d, R: %d/%d", leftSpeedDAC, leftDir, rightSpeedDAC, rightDir);
+    return;
 
     sendToDAC(leftSpeedDACChannel, leftSpeedDAC);
-    sendToDAC(leftDirDACChannel, leftDirDAC);
+    // sendToDAC(leftDirDACChannel, leftDirDAC);
     sendToDAC(rightSpeedDACChannel, rightSpeedDAC);
-    sendToDAC(rightDirDACChannel, rightDirDAC);
+    // sendToDAC(rightDirDACChannel, rightDirDAC);
 }
