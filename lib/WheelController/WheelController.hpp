@@ -6,6 +6,7 @@
 #include <math.h>
 #include "esp_log.h"
 #include <DFRobot_GP8XXX.h>
+#include "config.hpp"
 
 #define MAX_DAC_VALUE 32767 // 15-bit DAC, tj. max hodnota
 
@@ -63,6 +64,7 @@ private:
     // Privátní metody
     void computeMotorOutputs();
     void sendToDAC(uint8_t channel, uint16_t value);
+    void setDirection(uint8_t channel, bool reverse);
     uint16_t convertToDACValue(float voltage);
     float applyDeadzoneAndExpo(float value, float expo);
 };

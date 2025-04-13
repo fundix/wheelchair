@@ -64,6 +64,12 @@ void MotorController::begin()
     {
         GP8413.setDACOutRange(GP8413.eOutputRange5V);
     }
+
+    // reverse PIN init
+    pinMode(MOTOR_LEFT_REVERSE_PIN, OUTPUT);
+    digitalWrite(MOTOR_LEFT_REVERSE_PIN, MOTOR_LEFT_INIT_DIR);
+    pinMode(MOTOR_RIGHT_REVERSE_PIN, OUTPUT);
+    digitalWrite(MOTOR_RIGHT_REVERSE_PIN, MOTOR_RIGHT_INIT_DIR);
 }
 
 void MotorController::setJoystickInput(float x, float y)
@@ -172,14 +178,11 @@ void MotorController::update()
     // Pokud je hodnota kladná, motor jede vpřed; pokud záporná, couvá.
     float leftSpeed = fabs(leftCmd);
     float leftVoltage = leftSpeed * 5.0; // škálování na 5V
-    // Pro levý motor: true = vpřed, false = reverz
-    bool leftDir = (leftCmd >= 0);
+    bool leftDir = (leftCmd >= 0) ? MOTOR_LEFT_INIT_DIR : !MOTOR_LEFT_INIT_DIR;
 
-    // U pravého motoru – vzhledem k fyzické orientaci:
     float rightSpeed = fabs(rightCmd);
     float rightVoltage = rightSpeed * 5.0;
-    // U pravého motoru, pokud se požaduje vpřed (kladný příkaz), je potřeba zapnout reverz
-    bool rightDir = (rightCmd < 0);
+    bool rightDir = (rightCmd >= 0) ? MOTOR_RIGHT_INIT_DIR : !MOTOR_RIGHT_INIT_DIR;
 
     // Aplikace rychlostního módu (škálování podle Low/Med/High)
     // float modeFactor = 1.0;
@@ -201,15 +204,24 @@ void MotorController::update()
     // Převod napětí na DAC hodnoty a jejich odeslání
 
     uint16_t leftSpeedDAC = convertToDACValue(leftVoltage);
-    // uint16_t leftDirDAC = convertToDACValue(leftDir);
     uint16_t rightSpeedDAC = convertToDACValue(rightVoltage);
-    // uint16_t rightDirDAC = convertToDACValue(rightDir);
 
     // ESP_LOGI(TAG, "L: %d/%d, R: %d/%d", leftSpeedDAC, leftDir, rightSpeedDAC, rightDir);
-    return;
-
     sendToDAC(leftSpeedDACChannel, leftSpeedDAC);
-    // sendToDAC(leftDirDACChannel, leftDirDAC);
+    setDirection(leftSpeedDACChannel, leftDir);
     sendToDAC(rightSpeedDACChannel, rightSpeedDAC);
-    // sendToDAC(rightDirDACChannel, rightDirDAC);
+    setDirection(rightSpeedDACChannel, rightDir);
+}
+
+void MotorController::setDirection(uint8_t channel, bool reverse)
+{
+    // Nastavení směru motoru (reverz nebo vpřed) na základě kanálu
+    if (channel == leftSpeedDACChannel)
+    {
+        digitalWrite(MOTOR_LEFT_REVERSE_PIN, reverse ? HIGH : LOW);
+    }
+    else if (channel == rightSpeedDACChannel)
+    {
+        digitalWrite(MOTOR_RIGHT_REVERSE_PIN, reverse ? HIGH : LOW);
+    }
 }

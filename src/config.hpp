@@ -24,8 +24,10 @@
 #define BUTTON_PIN_UP GPIO_NUM_5
 #define BUTTON_PIN_DOWN GPIO_NUM_6
 
-#define MOTOR_LEFT_REVERSE_PIN GPIO_NUM_6
-#define MOTOR_RIGHT_REVERSE_PIN GPIO_NUM_7
+#define MOTOR_LEFT_INIT_DIR LOW
+#define MOTOR_LEFT_REVERSE_PIN GPIO_NUM_7
+#define MOTOR_RIGHT_INIT_DIR HIGH
+#define MOTOR_RIGHT_REVERSE_PIN GPIO_NUM_8
 
 // const char *ssid = "SuicideWheelchair";
 // const char *password = "SuicideWheelchair";
