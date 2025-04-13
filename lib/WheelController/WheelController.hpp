@@ -5,6 +5,7 @@
 #include <Arduino.h>
 #include <math.h>
 #include "esp_log.h"
+#include <DFRobot_GP8XXX.h>
 
 #define MAX_DAC_VALUE 32767 // 15-bit DAC, tj. max hodnota
 
@@ -37,6 +38,8 @@ public:
 
 private:
     // Uchovává vstupy z joysticku
+    bool DAInitialized = false;
+    DFRobot_GP8413 GP8413;
     float joystickX;
     float joystickY;
     SpeedMode currentMode;
@@ -49,9 +52,9 @@ private:
 
     // Definice DAC kanálů (předpokládáme 4 kanály: rychlost a směr pro každý motor)
     const uint8_t leftSpeedDACChannel = 0;
-    const uint8_t leftDirDACChannel = 1;
-    const uint8_t rightSpeedDACChannel = 2;
-    const uint8_t rightDirDACChannel = 3;
+    // const uint8_t leftDirDACChannel = 1;
+    const uint8_t rightSpeedDACChannel = 1;
+    // const uint8_t rightDirDACChannel = 3;
 
     // Vypočítané příkazy motorů (rozsah -1 až +1)
     float leftCmd;

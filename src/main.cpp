@@ -159,7 +159,7 @@ void setup()
   // Initialize I2C with custom pins
   Wire.end();
   Wire.begin(SDA_PIN, SCL_PIN);
-  Wire.setClock(200000UL); // Set I2C clock to 400kHz
+  Wire.setClock(200000UL); // Set I2C clock
 
   // Initialize display
   display.begin(0x3C, true);

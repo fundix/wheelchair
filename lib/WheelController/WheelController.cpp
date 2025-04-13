@@ -2,6 +2,28 @@
 
 static const char *TAG = "WheelController";
 
+/**************************
+----------------------------
+| A2 |  A1 | A0 | i2c_addr |
+----------------------------
+| 0  |  0  | 0  |   0x58   |
+----------------------------
+| 0  |  0  | 1  |   0x59   |
+----------------------------
+| 0  |  1  | 0  |   0x5A   |
+----------------------------
+| 0  |  1  | 1  |   0x5B   |
+----------------------------
+| 1  |  0  | 0  |   0x5C   |
+----------------------------
+| 1  |  0  | 1  |   0x5D   |
+----------------------------
+| 1  |  1  | 0  |   0x5E   |
+----------------------------
+| 1  |  1  | 1  |   0x5F   |
+----------------------------
+***************************/
+
 MotorController::MotorController()
     : joystickX(0), joystickY(0), currentMode(SPEED_HIGH),
       deadzone(0.05), expoFwd(1.3), expoTurn(1.2), turnScaleCoefficient(0.75),
@@ -15,6 +37,33 @@ void MotorController::begin()
     // Wire.begin();
     // Inicializace DAC (specificky pro DFR1073) zde
     // např. dac.begin();
+    DFRobot_GP8413 GP8413(/*deviceAddr=*/0x58);
+    uint8_t retries = 0;
+    const uint8_t MAX_RETRIES = 5;
+    bool DAInitialized = false;
+
+    while (!DAInitialized && retries < MAX_RETRIES)
+    {
+        if (GP8413.begin() == 0)
+        {
+            DAInitialized = true;
+        }
+        else
+        {
+            ESP_LOGE(TAG, "Communication with the device failed. Please check if the connection is correct or if the device address is set correctly.");
+            delay(100);
+            retries++;
+        }
+    }
+
+    if (!DAInitialized)
+    {
+        ESP_LOGE(TAG, "Failed to initialize DAC after maximum retries");
+    }
+    else
+    {
+        GP8413.setDACOutRange(GP8413.eOutputRange5V);
+    }
 }
 
 void MotorController::setJoystickInput(float x, float y)
@@ -102,10 +151,16 @@ void MotorController::sendToDAC(uint8_t channel, uint16_t value)
 {
     // Tato funkce by měla odeslat hodnotu do DAC převodníku pomocí I2C.
     // Implementujte podle dokumentace DFR1073. Zde jen vypíšeme hodnotu do sériového monitoru.
-    Serial.print("DAC kanál ");
-    Serial.print(channel);
-    Serial.print(": ");
-    Serial.println(value);
+    ESP_LOGI(TAG, "DAC channel %d: %d", channel, value);
+
+    if (DAInitialized)
+    {
+        GP8413.setDACOutVoltage(value, channel);
+    }
+    else
+    {
+        ESP_LOGE(TAG, "DAC not initialized");
+    }
 }
 
 void MotorController::update()
