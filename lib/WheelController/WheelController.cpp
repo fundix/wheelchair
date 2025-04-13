@@ -2,28 +2,6 @@
 
 static const char *TAG = "WheelController";
 
-/**************************
-----------------------------
-| A2 |  A1 | A0 | i2c_addr |
-----------------------------
-| 0  |  0  | 0  |   0x58   |
-----------------------------
-| 0  |  0  | 1  |   0x59   |
-----------------------------
-| 0  |  1  | 0  |   0x5A   |
-----------------------------
-| 0  |  1  | 1  |   0x5B   |
-----------------------------
-| 1  |  0  | 0  |   0x5C   |
-----------------------------
-| 1  |  0  | 1  |   0x5D   |
-----------------------------
-| 1  |  1  | 0  |   0x5E   |
-----------------------------
-| 1  |  1  | 1  |   0x5F   |
-----------------------------
-***************************/
-
 MotorController::MotorController()
     : joystickX(0), joystickY(0), currentMode(SPEED_HIGH),
       deadzone(0.05), expoFwd(1.3), expoTurn(1.2), turnScaleCoefficient(0.75),
@@ -37,7 +15,7 @@ void MotorController::begin()
     // Wire.begin();
     // Inicializace DAC (specificky pro DFR1073) zde
     // např. dac.begin();
-    DFRobot_GP8413 GP8413(/*deviceAddr=*/0x58);
+    DFRobot_GP8413 GP8413(i2c_DAC_Address);
     uint8_t retries = 0;
     const uint8_t MAX_RETRIES = 5;
     bool DAInitialized = false;

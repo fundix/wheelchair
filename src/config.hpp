@@ -2,20 +2,38 @@
 #define WHEELCHAIR_CONFIG_HPP
 
 #define i2c_Address 0x3c
-// #define SCL_PIN GPIO_NUM_9
-// #define SDA_PIN GPIO_NUM_8
+
+/**************************
+----------------------------
+| A2 |  A1 | A0 | i2c_addr |
+----------------------------
+| 0  |  0  | 0  |   0x58   |
+----------------------------
+| 0  |  0  | 1  |   0x59   |
+----------------------------
+| 0  |  1  | 0  |   0x5A   |
+----------------------------
+| 0  |  1  | 1  |   0x5B   |
+----------------------------
+| 1  |  0  | 0  |   0x5C   |
+----------------------------
+| 1  |  0  | 1  |   0x5D   |
+----------------------------
+| 1  |  1  | 0  |   0x5E   |
+----------------------------
+| 1  |  1  | 1  |   0x5F   |
+----------------------------
+***************************/
+#define i2c_DAC_Address 0x58
 
 // 1-dopredu
 // 2-do strany
 // 3-OK
-// 4-nahoru
+// 6-nahoru
 // 5-dolu
 
 #define SDA_PIN GPIO_NUM_8
 #define SCL_PIN GPIO_NUM_10
-
-// #define tx_io_num GPIO_NUM_4
-// #define rx_io_num GPIO_NUM_5
 
 #define JOYSTICK_X ADC1_CHANNEL_2
 #define JOYSTICK_Y ADC1_CHANNEL_1
