@@ -4,7 +4,16 @@
 #include <Adafruit_SH110X.h> // https://github.com/adafruit/Adafruit_SH110X
 #include "driver/gpio.h"
 #include "driver/twai.h"
+#if defined(CONFIG_IDF_TARGET_ESP32S3)
+// Pokud je cílová platforma ESP32-S3, použijeme speciální konfiguraci.
+#include "config-s3.hpp"
+#elif defined(CONFIG_IDF_TARGET_ESP32C3)
+// Pokud je cílová platforma ESP32-C3, použijeme standardní konfiguraci.
 #include "config.hpp"
+#else
+#warning "Neznámý cíl – defaultně se použije config.hpp"
+#include "config.hpp"
+#endif
 #include "Joystick.hpp"
 #include "WheelController.hpp"
 
