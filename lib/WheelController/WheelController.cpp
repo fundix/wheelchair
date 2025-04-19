@@ -1,29 +1,29 @@
 #include "WheelController.hpp"
 
-static const char *TAG = "WheelController";
+static const char *TAG = "WhCont";
 
 WheelController::WheelController()
     : joystickX(0), joystickY(0), currentMode(SPEED_HIGH),
       deadzone(0.05), expoFwd(1.3), expoTurn(1.2), turnScaleCoefficient(0.70),
       leftCmd(0), rightCmd(0), measuredLeftSpeed(0), measuredRightSpeed(0),
-      smoothingFactor(0.2f), lastLeftCmd(0), lastRightCmd(0)
+      smoothingFactor(0.5f), lastLeftCmd(0), lastRightCmd(0), GP8413(i2c_DAC_Address, RESOLUTION_15_BIT)
 {
 }
 
 void WheelController::begin()
 {
+    Wire.begin();
     // Inicializace I2C – dle použité knihovny a DAC modulu
-    // Wire.begin();
     // Inicializace DAC (specificky pro DFR1073) zde
     // např. dac.begin();
-    DFRobot_GP8413 GP8413(i2c_DAC_Address);
     uint8_t retries = 0;
     const uint8_t MAX_RETRIES = 5;
-    bool DAInitialized = false;
 
     while (!DAInitialized && retries < MAX_RETRIES)
     {
-        if (GP8413.begin() == 0)
+        int dacInitResult = GP8413.begin();
+        ESP_LOGI(TAG, "DAC init returned: %d", dacInitResult);
+        if (dacInitResult == 0)
         {
             DAInitialized = true;
         }

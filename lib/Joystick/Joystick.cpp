@@ -1,4 +1,5 @@
 #include "Joystick.hpp"
+#include "esp_adc_cal.h"
 
 static const char *TAG = "Joystick";
 
@@ -11,7 +12,8 @@ Joystick::Joystick(adc1_channel_t channelX, adc1_channel_t channelY, int deadZon
 {
     // Inicializace ADC – konfigurace šířky převodníku a útlumu pro dané kanály
     adc1_config_width(ADC_WIDTH_BIT_12);
-    esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_DB_12, ADC_WIDTH_BIT_12, 0, NULL);
+    static esp_adc_cal_characteristics_t adc_chars;
+    esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_DB_12, ADC_WIDTH_BIT_12, 1100, &adc_chars);
     adc1_config_channel_atten(_channelX, ADC_ATTEN_DB_12);
     adc1_config_channel_atten(_channelY, ADC_ATTEN_DB_12);
 }

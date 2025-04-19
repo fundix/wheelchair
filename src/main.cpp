@@ -1,19 +1,11 @@
 #include <Arduino.h>
 #include <Wire.h>
+#include <esp_log.h>
 #include <Adafruit_GFX.h>    // https://github.com/adafruit/Adafruit-GFX-Library
 #include <Adafruit_SH110X.h> // https://github.com/adafruit/Adafruit_SH110X
 #include "driver/gpio.h"
 #include "driver/twai.h"
-// #if defined(CONFIG_IDF_TARGET_ESP32S3)
-// Pokud je cílová platforma ESP32-S3, použijeme speciální konfiguraci.
 #include "config-s3.hpp"
-// #elif defined(CONFIG_IDF_TARGET_ESP32C3)
-// Pokud je cílová platforma ESP32-C3, použijeme standardní konfiguraci.
-// #include "config.hpp"
-// #else
-// #warning "Unknown target - config.hpp will be used as default"
-// #include "config.hpp"
-// #endif
 #include "Joystick.hpp"
 #include "WheelController.hpp"
 
@@ -57,7 +49,7 @@ GFXcanvas1 contentArea2(SCREEN_WIDTH, MAIN_HEIGHT);
 // uint32_t can_id = 0;
 
 Joystick *joystick = nullptr;
-WheelController *motorController = nullptr;
+WheelController *wheelController = nullptr;
 
 void control_task(void *parameter);
 void display_loop();
@@ -97,8 +89,8 @@ void screen1()
   contentArea1.print(rightMotor.reverse ? "-" : "+");
   contentArea1.print(rightMotor.speed);
 
-  float leftM = motorController->getLeftCmd();
-  float rightM = motorController->getRightCmd();
+  float leftM = wheelController->getLeftCmd();
+  float rightM = wheelController->getRightCmd();
 
   // Visual indicators for motor outputs
   int barWidth = 50;
@@ -161,6 +153,7 @@ void screen2()
 void setup()
 {
 
+  esp_log_level_set("*", ESP_LOG_INFO);
   Serial.begin();
   vTaskDelay(2500 / portTICK_PERIOD_MS); // Wait for Serial to initialize
   // Serial.setDebugOutput(true);
@@ -168,16 +161,15 @@ void setup()
   // digitalWrite(4, HIGH);
   // Initialize I2C with custom pins
   Wire.end();
-  Wire.begin(SDA_PIN, SCL_PIN);
+  Wire.begin(WIRE_SDA_PIN, WIRE_SCL_PIN);
   // Wire.setTimeOut(25);            // Set I2C timeout to 25ms
-  // Wire.setPins(SDA_PIN, SCL_PIN); // Set custom pins
-  // Wire.setClock(1000000UL);       // Set I2C clock
+  Wire.setClock(1000000UL); // Set I2C clock
 
   // Scan I2C devices
   Serial.println("Scanning for I2C devices...");
   for (uint8_t addr = 1; addr < 127; addr++)
   {
-    Serial.printf("0x%02X: ", addr);
+    // Serial.printf("0x%02X: ", addr);
     Wire.beginTransmission(addr);
     if (Wire.endTransmission() == 0)
     {
@@ -185,7 +177,7 @@ void setup()
     }
   }
   Serial.println("I2C scan complete");
-  vTaskDelay(3000 / portTICK_PERIOD_MS);
+  // vTaskDelay(3000 / portTICK_PERIOD_MS);
 
   // Initialize display
   display.begin(0x3C, true);
@@ -225,8 +217,8 @@ void setup()
   // }
 
   joystick = new Joystick(JOYSTICK_X, JOYSTICK_Y, 100);
-  motorController = new WheelController();
-  motorController->begin();
+  wheelController = new WheelController();
+  wheelController->begin();
 
   vTaskDelay(4000 / portTICK_PERIOD_MS); // Wait for display to initialize
 
@@ -254,7 +246,7 @@ void setup()
       NULL,
       1, // priority
       NULL,
-      0 // core
+      1 // core
   );
 
   log_d("setup done");
@@ -432,19 +424,19 @@ void control_task(void *parameter)
 {
   // Příklad: připojení joysticku na ADC kanály ADC1_CHANNEL_6 a ADC1_CHANNEL_7
   extern Joystick *joystick;
-  extern WheelController *motorController;
+  extern WheelController *wheelController;
   joystick->calibrate();
   joystick->calibrateMinMax(50, 4095, 0, 4095); // Nastavení minimálních a maximálních hodnot pro kalibraci
 
   while (1)
   {
     joystick->update();
-    motorController->setJoystickInput(joystick->getX(), joystick->getY());
-    motorController->update();
+    wheelController->setJoystickInput(joystick->getX(), joystick->getY());
+    wheelController->update(0.0, 0.0); // Update with dummy values for now
 
-    // ESP_LOGI(TAG, "Raw values X: %d, Y: %d", joystick->getRawX(), joystick->getRawY());
+    // ESP_LOGI(TAG, "Raw values X: %d, Y: %d", joystick->getX(), joystick->getY());
 
     vTaskDelay(pdMS_TO_TICKS(25)); // Delay for 25 ms
-    vTaskDelay(pdMS_TO_TICKS(75)); // Delay for 25 ms
+    // vTaskDelay(pdMS_TO_TICKS(75)); // Delay for 25 ms
   }
 }

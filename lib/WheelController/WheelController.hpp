@@ -6,7 +6,7 @@
 #include <math.h>
 #include "esp_log.h"
 #include <DFRobot_GP8XXX.h>
-#include "config.hpp"
+#include "config-s3.hpp"
 
 #define MAX_DAC_VALUE 32767 // 15-bit DAC, tj. max hodnota
 
@@ -22,7 +22,7 @@ public:
     };
 
     // Konstruktor a inicializace
-    WheelController();
+    WheelController();                       // GP8413 initialized in initializer list
     void begin();                            // inicializace I2C a DAC zařízení
     void setJoystickInput(float x, float y); // x: zatáčení (-1 až +1), y: plynový příkaz (-1 až +1)
     void setSpeedMode(SpeedMode mode);
@@ -42,7 +42,7 @@ public:
 private:
     // Uchovává vstupy z joysticku
     bool DAInitialized = false;
-    DFRobot_GP8413 GP8413;
+    DFRobot_GP8413 GP8413; // initialized in constructor
     float joystickX;
     float joystickY;
     SpeedMode currentMode;

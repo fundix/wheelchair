@@ -24,7 +24,7 @@
 | 1  |  1  | 1  |   0x5F   |
 ----------------------------
 ***************************/
-#define i2c_DAC_Address 0x58
+#define i2c_DAC_Address 0x59
 
 // 1-dopredu
 // 2-do strany
@@ -32,11 +32,11 @@
 // 6-nahoru
 // 5-dolu
 
-#define SDA_PIN GPIO_NUM_12 //
-#define SCL_PIN GPIO_NUM_11 //
+#define WIRE_SDA_PIN GPIO_NUM_12 //
+#define WIRE_SCL_PIN GPIO_NUM_11 //
 
-#define JOYSTICK_X ADC1_CHANNEL_8 // ok gpio 9
-#define JOYSTICK_Y ADC1_CHANNEL_9 // ok gpio 10
+#define JOYSTICK_X ADC1_CHANNEL_9 // ok gpio 9
+#define JOYSTICK_Y ADC1_CHANNEL_8 // ok gpio 10
 
 #define BUTTON_PIN_OK GPIO_NUM_14   // ok
 #define BUTTON_PIN_UP GPIO_NUM_15   // ok
@@ -47,7 +47,7 @@
 #define MOTOR_RIGHT_INIT_DIR LOW
 #define MOTOR_RIGHT_REVERSE_PIN GPIO_NUM_7 // BUG wrong pin
 
-#define MIN_VOLTAGE 0.8
+#define MIN_VOLTAGE 0.0
 #define MAX_VOLTAGE 4.3
 
 // const char *ssid = "SuicideWheelchair";
