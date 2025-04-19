@@ -46,6 +46,8 @@
 #define MOTOR_LEFT_REVERSE_PIN GPIO_NUM_7
 #define MOTOR_RIGHT_INIT_DIR HIGH
 #define MOTOR_RIGHT_REVERSE_PIN GPIO_NUM_7 // BUG wrong pin
+#define MIN_VOLTAGE 0.5
+#define MAX_VOLTAGE 4.5
 
 // const char *ssid = "SuicideWheelchair";
 // const char *password = "SuicideWheelchair";

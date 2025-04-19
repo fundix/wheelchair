@@ -11,7 +11,7 @@
 // Pokud je cílová platforma ESP32-C3, použijeme standardní konfiguraci.
 #include "config.hpp"
 #else
-#warning "Neznámý cíl – defaultně se použije config.hpp"
+#warning "Unknown target - config.hpp will be used as default"
 #include "config.hpp"
 #endif
 #include "Joystick.hpp"

@@ -32,20 +32,22 @@
 // 6-nahoru
 // 5-dolu
 
-#define SDA_PIN GPIO_NUM_8
-#define SCL_PIN GPIO_NUM_10
+#define SDA_PIN GPIO_NUM_8  // BUG wrong pin
+#define SCL_PIN GPIO_NUM_10 // BUG wrong pin
 
-#define JOYSTICK_X ADC1_CHANNEL_2
-#define JOYSTICK_Y ADC1_CHANNEL_1
+#define JOYSTICK_X ADC1_CHANNEL_2 // BUG wrong pin
+#define JOYSTICK_Y ADC1_CHANNEL_1 // BUG wrong pin
 
-#define BUTTON_PIN_OK GPIO_NUM_3
-#define BUTTON_PIN_UP GPIO_NUM_5
-#define BUTTON_PIN_DOWN GPIO_NUM_6
+#define BUTTON_PIN_OK GPIO_NUM_3   // BUG wrong pin
+#define BUTTON_PIN_UP GPIO_NUM_5   // BUG wrong pin
+#define BUTTON_PIN_DOWN GPIO_NUM_6 // BUG wrong pin
 
-#define MOTOR_LEFT_INIT_DIR LOW
-#define MOTOR_LEFT_REVERSE_PIN GPIO_NUM_7
-#define MOTOR_RIGHT_INIT_DIR HIGH
+#define MOTOR_LEFT_INIT_DIR LOW            // BUG wrong pin
+#define MOTOR_LEFT_REVERSE_PIN GPIO_NUM_7  // BUG wrong pin
+#define MOTOR_RIGHT_INIT_DIR HIGH          // BUG wrong pin
 #define MOTOR_RIGHT_REVERSE_PIN GPIO_NUM_7 // BUG wrong pin
+#define MIN_VOLTAGE 0.5
+#define MAX_VOLTAGE 4.5
 
 // const char *ssid = "SuicideWheelchair";
 // const char *password = "SuicideWheelchair";
