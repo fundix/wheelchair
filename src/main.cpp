@@ -4,16 +4,16 @@
 #include <Adafruit_SH110X.h> // https://github.com/adafruit/Adafruit_SH110X
 #include "driver/gpio.h"
 #include "driver/twai.h"
-#if defined(CONFIG_IDF_TARGET_ESP32S3)
+// #if defined(CONFIG_IDF_TARGET_ESP32S3)
 // Pokud je cílová platforma ESP32-S3, použijeme speciální konfiguraci.
 #include "config-s3.hpp"
-#elif defined(CONFIG_IDF_TARGET_ESP32C3)
+// #elif defined(CONFIG_IDF_TARGET_ESP32C3)
 // Pokud je cílová platforma ESP32-C3, použijeme standardní konfiguraci.
-#include "config.hpp"
-#else
-#warning "Unknown target - config.hpp will be used as default"
-#include "config.hpp"
-#endif
+// #include "config.hpp"
+// #else
+// #warning "Unknown target - config.hpp will be used as default"
+// #include "config.hpp"
+// #endif
 #include "Joystick.hpp"
 #include "WheelController.hpp"
 
@@ -57,7 +57,7 @@ GFXcanvas1 contentArea2(SCREEN_WIDTH, MAIN_HEIGHT);
 // uint32_t can_id = 0;
 
 Joystick *joystick = nullptr;
-MotorController *motorController = nullptr;
+WheelController *motorController = nullptr;
 
 void control_task(void *parameter);
 void display_loop();
@@ -84,7 +84,7 @@ void screen1()
   contentArea1.drawLine(centerX, centerY, endX, endY, SH110X_WHITE);
   contentArea1.drawCircle(centerX, centerY, 14, SH110X_WHITE);
 
-  MotorCommand leftMotor, rightMotor;
+  WheelCommand leftMotor, rightMotor;
   joystick->computeMotorCommands(leftMotor, rightMotor);
 
   contentArea1.setCursor(5, 5);
@@ -162,13 +162,30 @@ void setup()
 {
 
   Serial.begin();
-  Serial.setDebugOutput(true);
-  pinMode(4, OUTPUT); // for i2c power
-  digitalWrite(4, HIGH);
+  vTaskDelay(2500 / portTICK_PERIOD_MS); // Wait for Serial to initialize
+  // Serial.setDebugOutput(true);
+  // pinMode(4, OUTPUT); // for i2c power
+  // digitalWrite(4, HIGH);
   // Initialize I2C with custom pins
   Wire.end();
   Wire.begin(SDA_PIN, SCL_PIN);
-  Wire.setClock(200000UL); // Set I2C clock
+  // Wire.setTimeOut(25);            // Set I2C timeout to 25ms
+  // Wire.setPins(SDA_PIN, SCL_PIN); // Set custom pins
+  // Wire.setClock(1000000UL);       // Set I2C clock
+
+  // Scan I2C devices
+  Serial.println("Scanning for I2C devices...");
+  for (uint8_t addr = 1; addr < 127; addr++)
+  {
+    Serial.printf("0x%02X: ", addr);
+    Wire.beginTransmission(addr);
+    if (Wire.endTransmission() == 0)
+    {
+      Serial.printf("I2C device found at address 0x%02X\n", addr);
+    }
+  }
+  Serial.println("I2C scan complete");
+  vTaskDelay(3000 / portTICK_PERIOD_MS);
 
   // Initialize display
   display.begin(0x3C, true);
@@ -208,7 +225,7 @@ void setup()
   // }
 
   joystick = new Joystick(JOYSTICK_X, JOYSTICK_Y, 100);
-  motorController = new MotorController();
+  motorController = new WheelController();
   motorController->begin();
 
   vTaskDelay(4000 / portTICK_PERIOD_MS); // Wait for display to initialize
@@ -415,7 +432,7 @@ void control_task(void *parameter)
 {
   // Příklad: připojení joysticku na ADC kanály ADC1_CHANNEL_6 a ADC1_CHANNEL_7
   extern Joystick *joystick;
-  extern MotorController *motorController;
+  extern WheelController *motorController;
   joystick->calibrate();
   joystick->calibrateMinMax(50, 4095, 0, 4095); // Nastavení minimálních a maximálních hodnot pro kalibraci
 

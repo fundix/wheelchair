@@ -75,7 +75,7 @@ float Joystick::getY() const
     return _normY;
 }
 
-void Joystick::computeMotorCommands(MotorCommand &leftMotor, MotorCommand &rightMotor)
+void Joystick::computeMotorCommands(WheelCommand &leftMotor, WheelCommand &rightMotor)
 {
     float throttle = _normY;
     float turn = _normX;

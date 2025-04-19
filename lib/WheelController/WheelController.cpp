@@ -2,14 +2,15 @@
 
 static const char *TAG = "WheelController";
 
-MotorController::MotorController()
+WheelController::WheelController()
     : joystickX(0), joystickY(0), currentMode(SPEED_HIGH),
-      deadzone(0.05), expoFwd(1.3), expoTurn(1.2), turnScaleCoefficient(0.75),
-      leftCmd(0), rightCmd(0)
+      deadzone(0.05), expoFwd(1.3), expoTurn(1.2), turnScaleCoefficient(0.70),
+      leftCmd(0), rightCmd(0), measuredLeftSpeed(0), measuredRightSpeed(0),
+      smoothingFactor(0.2f), lastLeftCmd(0), lastRightCmd(0)
 {
 }
 
-void MotorController::begin()
+void WheelController::begin()
 {
     // Inicializace I2C – dle použité knihovny a DAC modulu
     // Wire.begin();
@@ -50,38 +51,49 @@ void MotorController::begin()
     digitalWrite(MOTOR_RIGHT_REVERSE_PIN, MOTOR_RIGHT_INIT_DIR);
 }
 
-void MotorController::setJoystickInput(float x, float y)
+void WheelController::setJoystickInput(float x, float y)
 {
     joystickX = x;
     joystickY = y;
 }
 
-void MotorController::setSpeedMode(SpeedMode mode)
+void WheelController::setSpeedMode(SpeedMode mode)
 {
     currentMode = mode;
 }
 
-void MotorController::setTurnScaleCoefficient(float coeff)
+void WheelController::setTurnScaleCoefficient(float coeff)
 {
     turnScaleCoefficient = coeff;
 }
 
-void MotorController::setExpoCurveFwd(float expo)
+void WheelController::setExpoCurveFwd(float expo)
 {
     expoFwd = expo;
 }
 
-void MotorController::setExpoCurveTurn(float expo)
+void WheelController::setExpoCurveTurn(float expo)
 {
     expoTurn = expo;
 }
 
-void MotorController::setDeadzone(float dz)
+void WheelController::setDeadzone(float dz)
 {
     deadzone = dz;
 }
 
-float MotorController::applyDeadzoneAndExpo(float value, float expo)
+void WheelController::setMeasuredSpeed(float left, float right)
+{
+    measuredLeftSpeed = left;
+    measuredRightSpeed = right;
+}
+
+void WheelController::setSmoothingFactor(float alpha)
+{
+    smoothingFactor = constrain(alpha, 0.01f, 1.0f);
+}
+
+float WheelController::applyDeadzoneAndExpo(float value, float expo)
 {
     // Pokud je vstup pod prahem mrtvé zóny, považujeme jej za 0.
     if (fabs(value) < deadzone)
@@ -93,45 +105,48 @@ float MotorController::applyDeadzoneAndExpo(float value, float expo)
     return sign * pow(fabs(value), expo);
 }
 
-void MotorController::computeMotorOutputs()
+void WheelController::computeMotorOutputs()
 {
     // Zpracování joystick vstupů s mrtvou zónou a expo křivkou
     float Y = applyDeadzoneAndExpo(joystickY, expoFwd);
     float X = applyDeadzoneAndExpo(joystickX, expoTurn);
 
-    // Redukce efektu zatáčení při vyšší rychlosti:
-    float absY = fabs(Y);
-    float turnFactor = 1 - turnScaleCoefficient * absY; // čím vyšší rychlost, tím menší účinek zatáčení
+    // Vypočtená (normalizovaná) rychlost vozíku – průměr absolutních rychlostí kol
+    float absSpeed = 0.5f * (fabs(measuredLeftSpeed) + fabs(measuredRightSpeed));
+    absSpeed = constrain(absSpeed, 0.0f, 1.0f);
+
+    // Redukce účinku zatáčení dle reálné rychlosti (čím rychleji jedu, tím méně ostře zatáčím)
+    float turnFactor = 1.0f - turnScaleCoefficient * absSpeed;
+    turnFactor = constrain(turnFactor, 0.0f, 1.0f);
     float X_eff = X * turnFactor;
 
     // Diferenciální mixování
-    float L = Y + X_eff;
-    float R = Y - X_eff;
+    float L_raw = Y + X_eff;
+    float R_raw = Y - X_eff;
 
-    // Zajištění rozsahu mezi -1 a +1
-    float maxVal = max(fabs(L), fabs(R));
-    if (maxVal > 1.0)
+    // Normalizace rozsahu -1…+1
+    float maxVal = max(fabs(L_raw), fabs(R_raw));
+    if (maxVal > 1.0f)
     {
-        L /= maxVal;
-        R /= maxVal;
+        L_raw /= maxVal;
+        R_raw /= maxVal;
     }
-    leftCmd = L;
-    rightCmd = R;
 
-    // ESP_LOGI(TAG, "L: %.2f, R: %.2f", leftCmd, rightCmd);
+    // Exponenciální vyhlazení (soft‑rampa)
+    leftCmd = lastLeftCmd + smoothingFactor * (L_raw - lastLeftCmd);
+    rightCmd = lastRightCmd + smoothingFactor * (R_raw - lastRightCmd);
+
+    lastLeftCmd = leftCmd;
+    lastRightCmd = rightCmd;
 }
 
-uint16_t MotorController::convertToDACValue(float voltage)
+uint16_t WheelController::convertToDACValue(float voltage)
 {
-    // Převod z napětí (0 až 5V) na hodnotu DAC (0 až MAX_DAC_VALUE)
-    if (voltage < 0)
-        voltage = 0;
-    if (voltage > 5)
-        voltage = 5;
-    return (uint16_t)((voltage / 5.0) * MAX_DAC_VALUE);
+    // Conversion from voltage (MIN_VOLTAGE to MAX_VOLTAGE) to DAC value (0 to MAX_DAC_VALUE)
+    return static_cast<uint16_t>((voltage / 5.0f) * MAX_DAC_VALUE);
 }
 
-void MotorController::sendToDAC(uint8_t channel, uint16_t value)
+void WheelController::sendToDAC(uint8_t channel, uint16_t value)
 {
     // Tato funkce by měla odeslat hodnotu do DAC převodníku pomocí I2C.
     // Implementujte podle dokumentace DFR1073. Zde jen vypíšeme hodnotu do sériového monitoru.
@@ -147,37 +162,31 @@ void MotorController::sendToDAC(uint8_t channel, uint16_t value)
     }
 }
 
-void MotorController::update()
+void WheelController::update(float leftSpeedNorm, float rightSpeedNorm)
 {
+    setMeasuredSpeed(leftSpeedNorm, rightSpeedNorm);
+
     // Vypočítat aktuální výstupní příkazy pro motory
     computeMotorOutputs();
 
     // Rozdělení příkazů pro levý motor:
     // Pokud je hodnota kladná, motor jede vpřed; pokud záporná, couvá.
     float leftSpeed = fabs(leftCmd);
-    float leftVoltage = leftSpeed * 5.0; // škálování na 5V
+    float leftVoltage = leftSpeed * (MAX_VOLTAGE - MIN_VOLTAGE) + MIN_VOLTAGE; // škálování na MIN_VOLTAGE–MAX_VOLTAGE
+    if (leftVoltage > MAX_VOLTAGE)
+    {
+        leftVoltage = MAX_VOLTAGE;
+    }
+
     bool leftDir = (leftCmd >= 0) ? MOTOR_LEFT_INIT_DIR : !MOTOR_LEFT_INIT_DIR;
 
     float rightSpeed = fabs(rightCmd);
-    float rightVoltage = rightSpeed * 5.0;
+    float rightVoltage = rightSpeed * (MAX_VOLTAGE - MIN_VOLTAGE) + MIN_VOLTAGE;
+    if (rightVoltage > MAX_VOLTAGE)
+    {
+        rightVoltage = MAX_VOLTAGE;
+    }
     bool rightDir = (rightCmd >= 0) ? MOTOR_RIGHT_INIT_DIR : !MOTOR_RIGHT_INIT_DIR;
-
-    // Aplikace rychlostního módu (škálování podle Low/Med/High)
-    // float modeFactor = 1.0;
-    // switch (currentMode)
-    // {
-    // case SPEED_LOW:
-    //     modeFactor = 0.5;
-    //     break;
-    // case SPEED_MEDIUM:
-    //     modeFactor = 0.75;
-    //     break;
-    // case SPEED_HIGH:
-    //     modeFactor = 1.0;
-    //     break;
-    // }
-    // leftVoltage *= modeFactor;
-    // rightVoltage *= modeFactor;
 
     // Převod napětí na DAC hodnoty a jejich odeslání
 
@@ -191,7 +200,7 @@ void MotorController::update()
     setDirection(rightSpeedDACChannel, rightDir);
 }
 
-void MotorController::setDirection(uint8_t channel, bool reverse)
+void WheelController::setDirection(uint8_t channel, bool reverse)
 {
     // Nastavení směru motoru (reverz nebo vpřed) na základě kanálu
     if (channel == leftSpeedDACChannel)

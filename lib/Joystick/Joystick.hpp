@@ -8,11 +8,12 @@
 #include "esp_log.h"
 #include <stdlib.h>
 #include <math.h>
+#include <stdint.h>
 
 #define ADC_MAX 4095 // 12-bit ADC
 
 // Struktura pro příkaz motoru: směr (reverse) a rychlost (0–255)
-struct MotorCommand
+struct WheelCommand
 {
     bool reverse;
     uint8_t speed;
@@ -31,7 +32,7 @@ public:
     float getY() const;
     int getRawX() const { return _rawX; }
     int getRawY() const { return _rawY; }
-    void computeMotorCommands(MotorCommand &leftMotor, MotorCommand &rightMotor);
+    void computeMotorCommands(WheelCommand &leftMotor, WheelCommand &rightMotor);
     void calibrateMinMax(int minX, int maxX, int minY, int maxY);
 
 private:
